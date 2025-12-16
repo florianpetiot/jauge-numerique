@@ -6,10 +6,14 @@
             <div class="video-wrapper">
                 <div class="cache-up"></div>
                 <div class="cache-down"></div>
+                <div class="overlay">
+                    <div class="threading">Placez votre<br>filetage ici</div>
+                    <div class="coin">Placez une<br>pièce de<br>monnaie ici</div>
+                </div>
                 <video ref="videoRef" autoplay playsinline></video>
             </div>
 
-            <div class="shooter" @click="captureAndNext">
+            <div class="shutter" @click="captureAndNext">
                 <div class="first-circle"></div>
                 <div class="second-circle"></div>
             </div>
@@ -21,7 +25,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
-import AppHeader from '../components/AppHeader.vue';
+import AppHeader from '@/components/AppHeader.vue';
 
 const videoRef = ref<HTMLVideoElement | null>(null);
 const router = useRouter();
@@ -84,7 +88,7 @@ onBeforeUnmount(() => {
         min-height: 100vh;
         box-sizing: border-box;
         background-color: #fff;
-        padding: 2rem 0;
+        padding: 2rem 0 0 0;
         text-align: center;
         color: black;
         font-family: 'Inter', 'Roboto';
@@ -92,12 +96,11 @@ onBeforeUnmount(() => {
 
 /* MOBILE FIRST */
     main {
-        height: 100%;
-        margin-bottom: 3rem;
+        height: 100vh;
+        margin: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content:space-around;
     }
 
     .camera-container {
@@ -107,14 +110,21 @@ onBeforeUnmount(() => {
         flex-direction: column;
         gap: 1rem;
         align-items: center;
+        flex: 1 1 auto;
+        justify-content: space-between;
+        padding: 0;
+        box-sizing: border-box;
     }
 
     .video-wrapper {
         width: 100%;
         background: #000;
-        /* border-radius: 12px; */
         overflow: hidden;
         position: relative;
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     .video-wrapper .cache-up,
     .video-wrapper .cache-down {
@@ -129,24 +139,66 @@ onBeforeUnmount(() => {
 
     .video-wrapper .cache-up {
         top: 0;
-        background: linear-gradient(to bottom, #fff, transparent);
+        background: linear-gradient(to bottom, #fff, #ffffff00);
     }
 
     .video-wrapper .cache-down {
         bottom: 0;
-        background: linear-gradient(to top, #fff, transparent);
+        background: linear-gradient(to top, #fff, #ffffff00);
+    }
+
+    .video-wrapper .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 2;
+        background-color: #0000005b;
+        color: #fff;
+    }
+
+    .video-wrapper .overlay .threading {
+        position: absolute;
+        width: 100%;
+        height: 30%;
+        top: 17%;
+        border-top: 2px solid #fff;
+        border-bottom: 2px solid #fff;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .video-wrapper .overlay .coin {
+        position: absolute;
+        bottom: 17%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 33%;
+        aspect-ratio: 1 / 1;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
     }
 
     video {
         width: 100%;
-        height: auto;
+        height: 100%;
         display: block;
         object-fit: cover;
         position: relative;
         z-index: 1;
     }
 
-    .shooter {
+    .shutter {
         width: 80px;
         height: 80px;
         border-radius: 50%;
@@ -156,6 +208,8 @@ onBeforeUnmount(() => {
         box-shadow: 0 0 12px rgba(0,0,0,0.7);
         cursor: pointer;
         position: relative;
+        margin: 1rem 0;
+        flex: 0 0 auto;
     }
 
     .first-circle {
