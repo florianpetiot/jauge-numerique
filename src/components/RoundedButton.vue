@@ -1,8 +1,28 @@
 <template>
+  <RouterLink v-if="props.to" :to="props.to" custom>
+    <template #default="{ navigate }">
+      <button
+        :class="['rounded-button', { 'has-icon': hasIcon }]"
+        :style="buttonStyle"
+        @click="handleNavigate(navigate)"
+        type="button"
+      >
+        <span v-if="hasIcon" class="icon" aria-hidden="true">
+          <slot name="icon">
+            <img v-if="props && props.iconSrc" :src="props.iconSrc" alt="" class="icon-img" />
+            <i v-else-if="icon" :class="icon"></i>
+          </slot>
+        </span>
+        <span class="label"><slot>{{ label }}</slot></span>
+      </button>
+    </template>
+  </RouterLink>
+
   <button
+    v-else
     :class="['rounded-button', { 'has-icon': hasIcon }]"
     :style="buttonStyle"
-    @click="$emit('click')"
+    @click="emit('click')"
     type="button"
   >
     <span v-if="hasIcon" class="icon" aria-hidden="true">
@@ -17,6 +37,7 @@
 
 <script setup lang="ts">
 import { computed, useSlots } from 'vue'
+import { RouterLink } from 'vue-router'
 
 const props = defineProps({
   label: { type: String, default: '' },
@@ -27,11 +48,19 @@ const props = defineProps({
   radius: { type: [Number, String], default: 12 },
   paddingY: { type: [Number, String], default: '0.55rem' },
   paddingX: { type: [Number, String], default: '1rem' },
+  to: { type: [String, Object], default: null },
 })
+
+const emit = defineEmits(['click'])
 
 const slots = useSlots()
 const hasIconSlot = computed(() => !!slots.icon)
 const hasIcon = computed(() => !!props.icon || !!props.iconSrc || hasIconSlot.value)
+
+function handleNavigate(navigate: Function) {
+  emit('click')
+  navigate()
+}
 
 const buttonStyle = computed(() => ({
   backgroundColor: props.color,

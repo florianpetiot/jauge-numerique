@@ -8,8 +8,8 @@
     </div>
 
     <div style="margin-top:1.6rem; display:flex; gap:0.8rem; justify-content:center; flex-wrap:wrap;">
-        <RoundedButton label="Nouvelle photo" :iconSrc="camera" color="#B3741D" />
-        <RoundedButton label="Charger une image" :iconSrc="upload" color="#B3741D" />
+      <RoundedButton label="Nouvelle photo" :iconSrc="camera" color="#B3741D" :to="'/camera'" />
+      <RoundedButton label="Charger une image" :iconSrc="upload" color="#B3741D" />
     </div>
     
   </main>
@@ -23,7 +23,7 @@ import upload from '../assets/upload.png'
 </script>
 
 <style scoped>
-.accueil {
+main {
   min-height: 100vh;
   box-sizing: border-box;
   background-color: #fff;
@@ -34,7 +34,7 @@ import upload from '../assets/upload.png'
 }
 
 /* MOBILE FIRST */
-.accueil {
+main {
   height: 100%;
   margin-bottom: 3rem;
   display: flex;
@@ -45,7 +45,7 @@ import upload from '../assets/upload.png'
 
 /* Header moved to src/components/AppHeader.vue */
 
-.accueil p {
+main p {
   font-size: clamp(1rem, 4vw, 1.2rem);
   max-width: 28rem;
   margin: 0 auto 2rem;
@@ -71,7 +71,7 @@ import upload from '../assets/upload.png'
 
 /* TABLETTE/DESKTOP */
 @media (min-width: 768px) {
-  .accueil {
+  main {
     padding: 4rem 2rem;
   }
 }

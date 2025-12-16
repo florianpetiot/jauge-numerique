@@ -12,6 +12,14 @@ export default defineConfig({
     vueJsx(),
     vueDevTools(),
   ],
+  server: {
+    host: true,
+    hmr: {
+      protocol: 'wss',
+      host: 'jere-unparaphrased-dolores.ngrok-free.dev', // ex. xxxx.ngrok.io ou nasty-bees-occur.loca.lt
+      clientPort: 443
+    }
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
