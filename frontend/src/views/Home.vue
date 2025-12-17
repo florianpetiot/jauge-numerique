@@ -16,15 +16,15 @@
 </template>
 
 <script setup lang="ts">
-import RoundedButton from '../components/RoundedButton.vue'
-import AppHeader from '../components/AppHeader.vue'
-import camera from '../assets/camera.png'
-import upload from '../assets/upload.png'
+import RoundedButton from '@/components/RoundedButton.vue'
+import AppHeader from '@/components/AppHeader.vue'
+import camera from '@/assets/camera.png'
+import upload from '@/assets/upload.png'
 </script>
 
 <style scoped>
 main {
-  min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100);
   box-sizing: border-box;
   background-color: #fff;
   padding: 2rem 1rem;

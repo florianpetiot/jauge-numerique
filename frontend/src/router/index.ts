@@ -13,6 +13,11 @@ const router = createRouter({
       name: 'Camera',
       component: () => import('../views/Camera.vue'),
     },
+    {
+      path: '/diameter',
+      name: 'Diameter',
+      component: () => import('../views/Diameter.vue'),
+    },
   ],
 })
 

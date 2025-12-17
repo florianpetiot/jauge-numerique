@@ -92,12 +92,18 @@ const captureAndNext = async () => {
         try {
             sessionStorage.setItem('capturedPhoto', photo);
             sessionStorage.setItem('analysisResult', JSON.stringify(json));
+            // Reset any previous image transform (avoid arriving zoomed)
+            try {
+                sessionStorage.removeItem('transform');
+            } catch (e) {
+                console.warn('Impossible de réinitialiser transform', e);
+            }
         } catch (e) {
             console.warn('Impossible de sauvegarder en sessionStorage', e);
         }
 
         stopCamera();
-        router.push({ name: 'Home' });
+        router.push({ name: 'Diameter' });
     } catch (e: any) {
         if (e.name === 'AbortError') {
             console.error('Timeout contacting analysis server');
@@ -123,7 +129,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
     main {
-        min-height: 100vh;
+        min-height: calc(var(--vh, 1vh) * 100);
         box-sizing: border-box;
         background-color: #fff;
         padding: 2rem 0 0 0;
@@ -134,7 +140,7 @@ onBeforeUnmount(() => {
 
 /* MOBILE FIRST */
     main {
-        height: 100vh;
+        height: calc(var(--vh, 1vh) * 100);
         margin: 0;
         display: flex;
         flex-direction: column;

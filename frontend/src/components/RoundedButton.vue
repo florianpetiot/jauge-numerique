@@ -95,7 +95,7 @@ const buttonStyle = computed(() => ({
 .rounded-button .icon i {
     font-style: normal;
 }
-.rounded-button.has-icon .label {
+.rounded-button .label {
     margin-left: 0;
     font-size:large
 }
