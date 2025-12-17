@@ -13,10 +13,10 @@
               :src="photo"
               alt="Photo capturée"
               :style="imgStyle"
-              @touchstart.prevent="onTouchStart"
-              @touchmove.prevent="onTouchMove"
-              @touchend.prevent="onTouchEnd"
-              @touchcancel.prevent="onTouchEnd"
+              @touchstart.passive="onTouchStart"
+              @touchmove.passive="onTouchMove"
+              @touchend.passive="onTouchEnd"
+              @touchcancel.passive="onTouchEnd"
             />
         </div>
 
@@ -63,8 +63,6 @@ const photo = ref<string | null>(null);
 const analysis = ref<any>(null);
 const router = useRouter();
 
-const zoomImgRef = ref<HTMLImageElement | null>(null);
-const photoDisplayRef = ref<HTMLElement | null>(null);
 const x = ref<number>(0);
 const y = ref<number>(0);
 const scale = ref<number>(1);
@@ -114,16 +112,35 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  // rien à nettoyer côté interact (gestion native)
 });
 
-function nextWithZoom() {
+async function nextWithZoom() {
   try {
     sessionStorage.setItem('transform', JSON.stringify({ x: x.value, y: y.value, scale: scale.value, angle: angle.value }));
+    console.log(JSON.stringify({ x: x.value, y: y.value, scale: scale.value, angle: angle.value }) );
   } catch (err) {
     console.warn('Impossible de sauvegarder transform', err);
   }
-  router.push({ name: 'Home' });
+
+  try {
+    const res = await fetch('/api/diameter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        analysis: analysis.value,
+        transform: {
+          x: x.value,
+          y: y.value,
+          scale: scale.value,
+          angle: angle.value
+        }
+      })
+    });
+  } catch (e) {
+    console.warn('Erreur lors de l\'appel à /api/diameter', e);
+  }
+
+  // router.push({ name: 'Home' });
 }
 
 // --- Gestion tactile native ---
@@ -277,7 +294,7 @@ const goToCamera = () => router.push({ name: 'Camera' });
       min-height: 0;
       touch-action: none;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
       background-color: #e6e6e6;
       background-image: radial-gradient(circle, #b1b1b1 1.5px, transparent 1.5px);
@@ -291,7 +308,7 @@ const goToCamera = () => router.push({ name: 'Camera' });
       object-fit: contain;
       touch-action: none;
       will-change: transform;
-        pointer-events: auto;
+      pointer-events: auto;
     }
 
     .photo-display .cache-up,
