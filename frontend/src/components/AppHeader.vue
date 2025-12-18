@@ -1,5 +1,5 @@
 <template>
-  <div class="header" :style="{'--header-scale': headerScale}">
+  <div class="header" :style="{'--header-scale': headerScale}" @click="router.push({ name: 'Home' })">
     <img src="../assets/lmdt.png" alt="Logo LMDT" />
     <div class="bar-vertical"></div>
     <div class="title">
@@ -10,6 +10,8 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
+const router = useRouter();
 const props = defineProps({
   headerScale: { type: [Number, String], default: 1 }
 });

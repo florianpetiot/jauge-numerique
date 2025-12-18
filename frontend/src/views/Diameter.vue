@@ -180,7 +180,30 @@ async function nextWithZoom() {
     console.warn('Erreur lors de l\'appel à /api/diameter', e);
   }
 
-  // router.push({ name: 'Home' });
+  // Calculate thread focus point: bottom center of the visible target rectangle
+  try {
+    const host = photoDisplayRef.value;
+    if (host) {
+      const rect = host.getBoundingClientRect();
+      const cx = rect.width / 2;
+      // target has CSS height: 30% and centered at 50% => bottom at 50% + 15% = 65%
+      const by = rect.height * 0.65;
+
+      // transform container point -> image local coordinates using inverse matrix
+      const m = getMatrix();
+      try {
+        const inv = m.inverse();
+        const p = inv.transformPoint(new DOMPoint(cx, by));
+        sessionStorage.setItem('threadFocus', JSON.stringify({ x: p.x, y: p.y }));
+      } catch (inner) {
+        console.warn('Impossible d\'inverser la matrice pour calculer threadFocus', inner);
+      }
+    }
+  } catch (err) {
+    console.warn('Erreur en calculant threadFocus', err);
+  }
+
+  router.push({ name: 'Threading' });
 }
 
 // --- Gestion tactile native ---
@@ -347,8 +370,10 @@ const goToCamera = () => router.push({ name: 'Camera' });
       position: relative;
       width: 100%;
       box-sizing: border-box;
-      flex: 1 1 auto;
-      min-height: 0;
+      /* Hauteur stable entre les écrans, indépendante du contenu sous l'image */
+      height: 40%;
+      min-height: 240px;
+      flex: 0 0 auto;
       touch-action: none;
       display: flex;
       align-items: flex-start;
@@ -409,13 +434,19 @@ const goToCamera = () => router.push({ name: 'Camera' });
     .explanations {
       width: 100%;
       box-sizing: border-box;
-      flex: 0 0 auto;
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      /* align-items: center; */
+      justify-content: space-evenly;
+      min-height: 0;
       overflow: auto;
       padding: 0 0.75rem 1rem 0.75rem;
     }
 
     .explanations h2, .explanations p {
         text-align: left;
+        margin: 0.5rem 0;
     }
 
     .explanations h2 {
@@ -424,6 +455,7 @@ const goToCamera = () => router.push({ name: 'Camera' });
 
     .explanations img {
         width: 70%;
+        align-self: center;
         height: auto;
         margin: 1rem 0;
     }

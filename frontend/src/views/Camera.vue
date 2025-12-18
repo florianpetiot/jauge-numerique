@@ -119,9 +119,11 @@ const captureAndNext = async () => {
             sessionStorage.setItem('analysisResult', JSON.stringify(json));
             // Reset any previous image transform (avoid arriving zoomed)
             try {
+                sessionStorage.removeItem('transformMatrix');
                 sessionStorage.removeItem('transform');
+                sessionStorage.removeItem('threadFocus');
             } catch (e) {
-                console.warn('Impossible de réinitialiser transform', e);
+                console.warn('Impossible de réinitialiser les clés de transform en sessionStorage', e);
             }
         } catch (e) {
             console.warn('Impossible de sauvegarder en sessionStorage', e);
