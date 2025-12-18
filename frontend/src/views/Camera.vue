@@ -34,10 +34,35 @@ const isUploading = ref(false);
 
 const startCamera = async () => {
     try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        // Beaucoup d'appareils retournent un flux faible (ex: 640x480) si on ne demande rien.
+        // On demande donc une résolution "idéale" 1080p, avec fallback si non supportée.
+        const preferredConstraints: MediaStreamConstraints = {
+            audio: false,
+            video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+            },
+        };
+
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(preferredConstraints);
+        } catch (e: any) {
+            // Certains navigateurs/appareils lèvent OverconstrainedError si la résolution demandée est impossible.
+            console.warn('Contraintes 1080p refusées, fallback sur contraintes par défaut', e);
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        }
+
         if (videoRef.value) {
             videoRef.value.srcObject = stream;
             await videoRef.value.play();
+
+            // Debug: permet de vérifier la résolution réelle négociée (visible dans la console)
+            const track = stream.getVideoTracks()[0];
+            if (track) {
+                const settings = track.getSettings?.();
+                console.log('Camera settings:', settings);
+            }
         }
     } catch (err) {
         console.error('Erreur accès caméra:', err);
@@ -158,6 +183,10 @@ onBeforeUnmount(() => {
         justify-content: space-between;
         padding: 0;
         box-sizing: border-box;
+        /* Important en flex: autorise le bloc vidéo à se "rétrécir" au lieu de pousser le shutter hors écran */
+        min-height: 0;
+        /* Évite que le bouton soit masqué par la safe-area sur mobile */
+        padding-bottom: env(safe-area-inset-bottom);
     }
 
     .video-wrapper {
@@ -169,6 +198,8 @@ onBeforeUnmount(() => {
         display: flex;
         align-items: center;
         justify-content: center;
+        /* Permet au conteneur vidéo de ne pas imposer sa hauteur min */
+        min-height: 0;
     }
     .video-wrapper .cache-up,
     .video-wrapper .cache-down {
@@ -234,11 +265,12 @@ onBeforeUnmount(() => {
     }
 
     video {
+        position: absolute;
+        top: 0;
         width: 100%;
-        height: 100%;
+        height: auto;
         display: block;
         object-fit: cover;
-        position: relative;
         z-index: 1;
     }
 

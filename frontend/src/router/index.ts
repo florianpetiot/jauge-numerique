@@ -18,6 +18,11 @@ const router = createRouter({
       name: 'Diameter',
       component: () => import('../views/Diameter.vue'),
     },
+    {
+      path: '/threading',
+      name: 'Threading',
+      component: () => import('../views/Threading.vue'),
+    },
   ],
 })
 

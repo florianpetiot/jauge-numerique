@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount, nextTick } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import AppHeader from '@/components/AppHeader.vue';
 import RoundedButton from '@/components/RoundedButton.vue';
@@ -63,28 +63,65 @@ const photo = ref<string | null>(null);
 const analysis = ref<any>(null);
 const router = useRouter();
 
-const x = ref<number>(0);
-const y = ref<number>(0);
-const scale = ref<number>(1);
-const angle = ref<number>(0);
+const photoDisplayRef = ref<HTMLElement | null>(null);
+const zoomImgRef = ref<HTMLImageElement | null>(null);
 
-const imgStyle = computed(() => ({
-  transform: `translate(${x.value}px, ${y.value}px) rotate(${angle.value}deg) scale(${scale.value})`,
-  transformOrigin: 'center center'
-}));
+type Matrix2D = { a: number; b: number; c: number; d: number; e: number; f: number };
+const matrixState = ref<Matrix2D>({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
+
+const getMatrix = () => {
+  const m = matrixState.value;
+  return new DOMMatrix([m.a, m.b, m.c, m.d, m.e, m.f]);
+};
+
+const setMatrix = (m: DOMMatrix) => {
+  matrixState.value = { a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f };
+};
+
+const decomposeMatrix = (m: DOMMatrix) => {
+  // Hypothèse: scale uniforme + rotation (ce que nos gestes produisent)
+  const scale = Math.hypot(m.a, m.b) || 1;
+  const angle = Math.atan2(m.b, m.a) * 180 / Math.PI;
+  return { x: m.e, y: m.f, scale, angle };
+};
+
+const imgStyle = computed(() => {
+  const m = matrixState.value;
+  return {
+    transform: `matrix(${m.a}, ${m.b}, ${m.c}, ${m.d}, ${m.e}, ${m.f})`,
+    // Origine stable (top-left) => notre matrice est exprimée dans le repère du container
+    transformOrigin: '0 0'
+  };
+});
 
 const clamp = (v: number, a = 0.5, b = 5) => Math.max(a, Math.min(b, v));
 
 onMounted(async () => {
-  // restore previous transform if present
+  // Restore previous transform (priorité à la matrice)
   try {
-    const t = sessionStorage.getItem('transform');
-    if (t) {
-      const parsed = JSON.parse(t);
-      x.value = parsed.x || 0;
-      y.value = parsed.y || 0;
-      scale.value = parsed.scale || 1;
-      angle.value = parsed.angle || 0;
+    const tm = sessionStorage.getItem('transformMatrix');
+    if (tm) {
+      const parsed = JSON.parse(tm);
+      if (
+        parsed &&
+        typeof parsed.a === 'number' && typeof parsed.b === 'number' &&
+        typeof parsed.c === 'number' && typeof parsed.d === 'number' &&
+        typeof parsed.e === 'number' && typeof parsed.f === 'number'
+      ) {
+        matrixState.value = parsed;
+      }
+    } else {
+      // Compat: ancien format {x,y,scale,angle}
+      const t = sessionStorage.getItem('transform');
+      if (t) {
+        const parsed = JSON.parse(t);
+        const x = typeof parsed.x === 'number' ? parsed.x : 0;
+        const y = typeof parsed.y === 'number' ? parsed.y : 0;
+        const scale = typeof parsed.scale === 'number' ? parsed.scale : 1;
+        const angle = typeof parsed.angle === 'number' ? parsed.angle : 0;
+        const m = new DOMMatrix().translate(x, y).rotate(angle).scale(scale);
+        setMatrix(m);
+      }
     }
   } catch (err) {
     console.warn('Impossible de restaurer transform', err);
@@ -111,13 +148,14 @@ onMounted(async () => {
   await nextTick();
 });
 
-onBeforeUnmount(() => {
-});
-
 async function nextWithZoom() {
+  const m = getMatrix();
+  const { x, y, scale, angle } = decomposeMatrix(m);
+
   try {
-    sessionStorage.setItem('transform', JSON.stringify({ x: x.value, y: y.value, scale: scale.value, angle: angle.value }));
-    console.log(JSON.stringify({ x: x.value, y: y.value, scale: scale.value, angle: angle.value }) );
+    sessionStorage.setItem('transformMatrix', JSON.stringify(matrixState.value));
+    // On conserve aussi l'ancien format pour compat/debug
+    sessionStorage.setItem('transform', JSON.stringify({ x, y, scale, angle }));
   } catch (err) {
     console.warn('Impossible de sauvegarder transform', err);
   }
@@ -129,10 +167,12 @@ async function nextWithZoom() {
       body: JSON.stringify({
         analysis: analysis.value,
         transform: {
-          x: x.value,
-          y: y.value,
-          scale: scale.value,
-          angle: angle.value
+          x,
+          y,
+          scale,
+          angle,
+          // La matrice complète est utile si tu veux une interprétation 100% exacte côté backend plus tard
+          matrix: matrixState.value
         }
       })
     });
@@ -146,31 +186,33 @@ async function nextWithZoom() {
 // --- Gestion tactile native ---
 type Vec2 = { x: number; y: number };
 
-const getMidpoint = (t1: Touch, t2: Touch): Vec2 => ({
-  x: (t1.clientX + t2.clientX) / 2,
-  y: (t1.clientY + t2.clientY) / 2,
-});
-
-const getDistance = (t1: Touch, t2: Touch) => {
-  const dx = t2.clientX - t1.clientX;
-  const dy = t2.clientY - t1.clientY;
-  return Math.hypot(dx, dy);
+const getLocalPoint = (t: Touch): Vec2 => {
+  const host = photoDisplayRef.value;
+  const rect = host?.getBoundingClientRect();
+  if (!rect) return { x: t.clientX, y: t.clientY };
+  return { x: t.clientX - rect.left, y: t.clientY - rect.top };
 };
 
-const getAngleDeg = (t1: Touch, t2: Touch) =>
-  Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI;
+const midpoint = (p1: Vec2, p2: Vec2): Vec2 => ({
+  x: (p1.x + p2.x) / 2,
+  y: (p1.y + p2.y) / 2,
+});
+
+const distance = (p1: Vec2, p2: Vec2) => Math.hypot(p2.x - p1.x, p2.y - p1.y);
+
+const angleDeg = (p1: Vec2, p2: Vec2) =>
+  Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
 
 let panActive = false;
 let panStartTouch: Vec2 = { x: 0, y: 0 };
-let panStartTranslate: Vec2 = { x: 0, y: 0 };
+let panStartMatrix = new DOMMatrix();
 
 let gestureActive = false;
 let gestureStartDistance = 0;
 let gestureStartAngle = 0;
 let gestureStartMidpoint: Vec2 = { x: 0, y: 0 };
 let gestureStartScale = 1;
-let gestureStartRotation = 0;
-let gestureStartTranslate: Vec2 = { x: 0, y: 0 };
+let gestureStartMatrix = new DOMMatrix();
 
 function resetFromTouches(e: TouchEvent) {
   const touches = e.touches;
@@ -179,21 +221,22 @@ function resetFromTouches(e: TouchEvent) {
     if (!t) return;
     gestureActive = false;
     panActive = true;
-    panStartTouch = { x: t.clientX, y: t.clientY };
-    panStartTranslate = { x: x.value, y: y.value };
+    panStartTouch = getLocalPoint(t);
+    panStartMatrix = getMatrix();
   } else if (touches.length >= 2) {
     const t1 = touches.item(0);
     const t2 = touches.item(1);
     if (!t1 || !t2) return;
     panActive = false;
     gestureActive = true;
-    gestureStartDistance = getDistance(t1, t2) || 1;
-    gestureStartAngle = getAngleDeg(t1, t2);
-    gestureStartMidpoint = getMidpoint(t1, t2);
+    const p1 = getLocalPoint(t1);
+    const p2 = getLocalPoint(t2);
+    gestureStartDistance = distance(p1, p2) || 1;
+    gestureStartAngle = angleDeg(p1, p2);
+    gestureStartMidpoint = midpoint(p1, p2);
 
-    gestureStartScale = scale.value;
-    gestureStartRotation = angle.value;
-    gestureStartTranslate = { x: x.value, y: y.value };
+    gestureStartMatrix = getMatrix();
+    gestureStartScale = Math.hypot(gestureStartMatrix.a, gestureStartMatrix.b) || 1;
   } else {
     panActive = false;
     gestureActive = false;
@@ -209,10 +252,11 @@ function onTouchMove(e: TouchEvent) {
   if (touches.length === 1 && panActive) {
     const t = touches.item(0);
     if (!t) return;
-    const dx = t.clientX - panStartTouch.x;
-    const dy = t.clientY - panStartTouch.y;
-    x.value = panStartTranslate.x + dx;
-    y.value = panStartTranslate.y + dy;
+    const p = getLocalPoint(t);
+    const dx = p.x - panStartTouch.x;
+    const dy = p.y - panStartTouch.y;
+    const next = new DOMMatrix().translate(dx, dy).multiply(panStartMatrix);
+    setMatrix(next);
     return;
   }
 
@@ -225,19 +269,32 @@ function onTouchMove(e: TouchEvent) {
     const t2 = touches.item(1);
     if (!t1 || !t2) return;
 
+    const p1 = getLocalPoint(t1);
+    const p2 = getLocalPoint(t2);
+
     // pinch
-    const dist = getDistance(t1, t2) || gestureStartDistance || 1;
-    const ratio = dist / (gestureStartDistance || 1);
-    scale.value = clamp(gestureStartScale * ratio);
+    const dist = distance(p1, p2) || gestureStartDistance || 1;
+    const rawRatio = dist / (gestureStartDistance || 1);
+    const desiredScale = clamp(gestureStartScale * rawRatio);
+    const ratio = desiredScale / (gestureStartScale || 1);
 
     // rotation
-    const a = getAngleDeg(t1, t2);
-    angle.value = gestureStartRotation + (a - gestureStartAngle);
+    const a = angleDeg(p1, p2);
+    const rotDelta = a - gestureStartAngle;
 
-    // pan (déplacement du centre du geste)
-    const mid = getMidpoint(t1, t2);
-    x.value = gestureStartTranslate.x + (mid.x - gestureStartMidpoint.x);
-    y.value = gestureStartTranslate.y + (mid.y - gestureStartMidpoint.y);
+    // centre du geste (dans le repère du container)
+    const mid = midpoint(p1, p2);
+
+    // Matrice incrémentale exacte: on force le zoom+rotation autour du midpoint de départ,
+    // puis on amène ce midpoint au midpoint courant.
+    const inc = new DOMMatrix()
+      .translate(mid.x, mid.y)
+      .rotate(rotDelta)
+      .scale(ratio)
+      .translate(-gestureStartMidpoint.x, -gestureStartMidpoint.y);
+
+    const next = inc.multiply(gestureStartMatrix);
+    setMatrix(next);
   }
 }
 
@@ -302,10 +359,13 @@ const goToCamera = () => router.push({ name: 'Camera' });
     }
 
     .photo-display img {
+      position: absolute;
+      left: 0;
       display: block;
+      top: 0;
       width: 100%;
       height: auto;
-      object-fit: contain;
+      object-fit: cover;
       touch-action: none;
       will-change: transform;
       pointer-events: auto;
