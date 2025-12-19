@@ -28,7 +28,9 @@
     
             <img :src="example1" alt="Image agrandie">
     
-            <RoundedButton label="Suivant" color="#09BC8A" @click="nextWithZoom" />
+            <div class="footer">
+              <RoundedButton class="next-button" label="Suivant" color="#09BC8A" @click="nextWithZoom" />
+            </div>
         </div>
       </div>
       
@@ -37,16 +39,6 @@
         <p>Aucune photo trouvée dans la session.</p>
         <button @click="goToCamera">Retour à la caméra</button>
       </div>
-
-
-      <!-- <div v-if="analysis" class="analysis">
-        <h3>Résultat d'analyse</h3>
-        <pre>{{ analysis }}</pre>
-      </div>
-
-      <div class="actions">
-        <button @click="goHome">Accueil</button>
-      </div> -->
     </section>
   </main>
 </template>
@@ -472,5 +464,9 @@ const goToCamera = () => router.push({ name: 'Camera' });
       height: 100%;
       min-height: 0;
       gap: 1rem;
+    }
+
+    .footer {
+      padding: 0 2rem;
     }
 </style>

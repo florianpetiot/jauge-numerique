@@ -7,27 +7,71 @@
         <div class="photo-display" ref="photoDisplayRef">
             <div class="cache-up"></div>
             <div class="cache-down"></div>
-            <!-- <div class="target"></div> -->
+            <div class="lines">
+                <div v-for="i in numberOfLines" :key="i" class="line"></div>
+            </div>
             <img
               ref="zoomImgRef"
               :src="photo"
               alt="Photo capturée"
               :style="imgStyle"
-              @touchstart.passive="onTouchStart"
-              @touchmove.passive="onTouchMove"
-              @touchend.passive="onTouchEnd"
-              @touchcancel.passive="onTouchEnd"
+              @touchstart="onTouchStart"
+              @touchmove="onTouchMove"
+              @touchend="onTouchEnd"
+              @touchcancel="onTouchEnd"
             />
         </div>
 
         <div class="explanations">
-
+          <div>
             <h2>Etape 2</h2>
             <p>Allignez les repères bleus avec le filletage de votre pièce. Commencez par alligner un sommet de droite avec le premier repère.</p>
+          </div>
+
+          <div class="controllers">
+            <div class="controller">
+              <p>Nombre de repères</p>
+              <button
+                @click="decreaseLines"
+              >-</button>
+              <!-- <span>{{ numberOfLines }}</span> -->
+              <button
+                @click="increaseLines"
+              >+</button>
+            </div>
+            <div class="controller">
+              <p>Largeur des repères</p>
+              <button
+                @mousedown="startDecreaseLinesWidth"
+                @mouseup="stopWidthRepeat"
+                @mouseleave="stopWidthRepeat"
+                @touchstart.prevent="startDecreaseLinesWidth"
+                @touchend="stopWidthRepeat"
+                @touchcancel="stopWidthRepeat"
+                @contextmenu.prevent
+              >-</button>
+              <!-- <span>{{ linesWidth }}</span> -->
+              <button
+                @mousedown="startIncreaseLinesWidth"
+                @mouseup="stopWidthRepeat"
+                @mouseleave="stopWidthRepeat"
+                @touchstart.prevent="startIncreaseLinesWidth"
+                @touchend="stopWidthRepeat"
+                @touchcancel="stopWidthRepeat"
+                @contextmenu.prevent
+              >+</button>
+            </div>
+          </div>
     
-            <img :src="example2" alt="Image agrandie">
-    
+          <img :src="example2" alt="Image agrandie">
+          
+          <div class="footer">
+            <!-- <RoundedButton class="back-button" color="#6b6969" :icon-src="backArrow" :to="'/Diameter'" /> -->
+            <div class="back-button" @click="router.push('Diameter')">
+              <img :src="backArrow" alt="Flèche de retour">
+            </div>
             <RoundedButton label="Suivant" color="#09BC8A" @click="nextWithZoom" />
+          </div>
         </div>
       </div>
       
@@ -36,16 +80,6 @@
         <p>Aucune photo trouvée dans la session.</p>
         <button @click="goToCamera">Retour à la caméra</button>
       </div>
-
-
-      <!-- <div v-if="analysis" class="analysis">
-        <h3>Résultat d'analyse</h3>
-        <pre>{{ analysis }}</pre>
-      </div>
-
-      <div class="actions">
-        <button @click="goHome">Accueil</button>
-      </div> -->
     </section>
   </main>
 </template>
@@ -56,6 +90,7 @@ import { useRouter } from 'vue-router';
 import AppHeader from '@/components/AppHeader.vue';
 import RoundedButton from '@/components/RoundedButton.vue';
 import example2 from '@/assets/example2.png';
+import backArrow from '@/assets/back_arrow.png';
 
 const photo = ref<string | null>(null);
 const analysis = ref<any>(null);
@@ -328,9 +363,9 @@ function onTouchMove(e: TouchEvent) {
     const t = touches.item(0);
     if (!t) return;
     const p = getLocalPoint(t);
+    // Autoriser uniquement le déplacement horizontal: ignorer dy
     const dx = p.x - panStartTouch.x;
-    const dy = p.y - panStartTouch.y;
-    const next = new DOMMatrix().translate(dx, dy).multiply(panStartMatrix);
+    const next = new DOMMatrix().translate(dx, 0).multiply(panStartMatrix);
     setMatrix(next);
     return;
   }
@@ -349,6 +384,77 @@ function onTouchEnd(e: TouchEvent) {
   }
   panActive = false;
 }
+
+
+// CONTROLE DES REPERES
+const numberOfLines = ref(5);
+const linesWidth = ref(60);
+const lineWidth = 4; // px
+
+function increaseLines() {
+  const containerW = photoDisplayRef.value?.clientWidth || 420;
+  const currentSpacingPx = (linesWidth.value / 100 * containerW - numberOfLines.value * lineWidth) / (numberOfLines.value - 1);
+  const newLinesWidthPx = (numberOfLines.value + 1) * lineWidth + numberOfLines.value * currentSpacingPx;
+  const newLinesWidthPercent = (newLinesWidthPx / containerW) * 100;
+  if (newLinesWidthPercent <= 80) {
+    linesWidth.value = Math.min(80, newLinesWidthPercent);
+  }
+  numberOfLines.value++;
+}
+
+function decreaseLines() {
+  if (numberOfLines.value > 2) {
+    // Recalculate width to keep spacing constant
+    const containerW = photoDisplayRef.value?.clientWidth || 420;
+    const currentSpacingPx = (linesWidth.value / 100 * containerW - numberOfLines.value * lineWidth) / (numberOfLines.value - 1);
+    const newLinesWidthPx = (numberOfLines.value - 1) * lineWidth + (numberOfLines.value - 2) * currentSpacingPx;
+    const newLinesWidthPercent = (newLinesWidthPx / containerW) * 100;
+    linesWidth.value = Math.max(0, newLinesWidthPercent);
+    numberOfLines.value--;
+  }
+}
+
+function increaseLinesWidth() {
+  linesWidth.value = Math.min(80, linesWidth.value + 0.5);
+}
+function decreaseLinesWidth() {
+  linesWidth.value = Math.max(0, linesWidth.value - 0.5);
+}
+
+// Repeat-on-hold support
+let widthTimer: number | null = null;
+let widthInterval: number | null = null;
+
+function startIncreaseLinesWidth() {
+  increaseLinesWidth();
+  if (widthTimer) return;
+  widthTimer = window.setTimeout(() => {
+    widthInterval = window.setInterval(increaseLinesWidth, 80);
+    widthTimer = null;
+  }, 400);
+}
+
+function startDecreaseLinesWidth() {
+  decreaseLinesWidth();
+  if (widthTimer) return;
+  widthTimer = window.setTimeout(() => {
+    widthInterval = window.setInterval(decreaseLinesWidth, 80);
+    widthTimer = null;
+  }, 400);
+}
+
+function stopWidthRepeat() {
+  if (widthTimer) {
+    clearTimeout(widthTimer);
+    widthTimer = null;
+  }
+  if (widthInterval) {
+    clearInterval(widthInterval);
+    widthInterval = null;
+  }
+}
+
+
 
 const goHome = () => router.push({ name: 'Home' });
 const goToCamera = () => router.push({ name: 'Camera' });
@@ -394,11 +500,10 @@ const goToCamera = () => router.push({ name: 'Camera' });
       position: relative;
       width: 100%;
       box-sizing: border-box;
-      /* Hauteur stable entre les écrans, indépendante du contenu sous l'image */
       height: 40%;
       min-height: 240px;
       flex: 0 0 auto;
-      touch-action: none;
+      touch-action: pan-x;
       display: flex;
       align-items: flex-start;
       justify-content: center;
@@ -415,7 +520,9 @@ const goToCamera = () => router.push({ name: 'Camera' });
       width: 100%;
       height: auto;
       object-fit: cover;
-      touch-action: none;
+      touch-action: pan-x;
+      -webkit-user-drag: none;
+      user-select: none;
       will-change: transform;
       pointer-events: auto;
     }
@@ -441,18 +548,22 @@ const goToCamera = () => router.push({ name: 'Camera' });
         background: linear-gradient(to top, #fff, #ffffff00);
     }
 
-    .photo-display .target {
+    .photo-display .lines {
         position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 80%;
-        height: 30%;
-        background-color: #00c2d033;
-        border-top: 3px solid #00c2d0;
-        border-bottom: 3px solid #00c2d0;
-        transform: translate(-50%, -50%);
+        bottom: 0;
+        left: 20%;
+        width: v-bind(linesWidth + '%');
+        height: 60%;
         pointer-events: none;
-        z-index: 4;
+        z-index: 2;
+        display: flex;
+        justify-content: space-between;
+
+    }
+
+    .photo-display .lines .line {
+        border-left: v-bind(lineWidth + 'px') solid;
+        border-image: linear-gradient(to bottom, #00c2d000 0%, #00C3D0 25%, #00C3D0 100%) 1;
     }
 
     .explanations {
@@ -477,6 +588,13 @@ const goToCamera = () => router.push({ name: 'Camera' });
         font-size:xx-large;
     }
 
+
+    .explanations .controller {
+        display: flex;
+        justify-content: space-around;
+        margin: 0.5rem 0;
+    }
+
     .explanations img {
         width: 70%;
         height: auto;
@@ -497,4 +615,24 @@ const goToCamera = () => router.push({ name: 'Camera' });
       min-height: 0;
       gap: 1rem;
     }
+
+    .footer {
+      display: flex;
+      justify-content: space-evenly;
+      gap: 1rem;
+      margin-top: 1rem;
+      padding: 0 2rem;
+    }
+    
+    .footer .back-button {
+      background-color: #6b6969;
+      flex: 0 0 auto;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
 </style>
