@@ -92,6 +92,13 @@ const captureAndNext = async () => {
     ctx.drawImage(video, 0, 0, width, height);
     const photo = canvas.toDataURL('image/jpeg', 0.92);
 
+    const top_threading = Math.round(0.17 * height);
+    const bottom_threading = Math.round(0.47 * height);
+    const diameter_piece = Math.round(0.33 * width);
+    const x_piece = Math.round(0.5 * width);
+    const y_piece = Math.round(height - 0.17 * height - (diameter_piece / 2));
+
+
     // Timeout helper
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10s
@@ -101,7 +108,14 @@ const captureAndNext = async () => {
         const res = await fetch('/api/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image_base64: photo }),
+            body: JSON.stringify({
+                image_base64: photo,
+                top_threading,
+                bottom_threading,
+                diameter_piece,
+                x_piece,
+                y_piece
+            }),
             signal: controller.signal
         });
         clearTimeout(timeout);
