@@ -157,13 +157,12 @@ async function nextWithZoom() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        analysis: analysis.value,
+        // analysis: analysis.value,
         transform: {
           x,
           y,
           scale,
           angle,
-          // La matrice complète est utile si tu veux une interprétation 100% exacte côté backend plus tard
           matrix: matrixState.value
         }
       })

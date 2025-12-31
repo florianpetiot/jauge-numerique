@@ -7,3 +7,13 @@ class CameraInput(BaseModel):
     diameter_piece: float
     x_piece: float
     y_piece: float
+
+class TransformInput(BaseModel):
+    x: float
+    y: float
+    scale: float
+    angle: float
+    matrix: dict[str, float]
+
+class DiameterInput(BaseModel):
+    transform: TransformInput
