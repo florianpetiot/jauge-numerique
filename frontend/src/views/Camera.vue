@@ -18,6 +18,8 @@
                 <div class="second-circle"></div>
             </div>
         </section>
+
+        <Toast :message="errorMessage" :show="showError" color="error" @close="showError = false" />
     </main>
 </template>
 
@@ -26,11 +28,19 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import AppHeader from '@/components/AppHeader.vue';
+import Toast from '@/components/Toast.vue';
 
 const videoRef = ref<HTMLVideoElement | null>(null);
 const router = useRouter();
 let stream: MediaStream | null = null;
 const isUploading = ref(false);
+const errorMessage = ref('');
+const showError = ref(false);
+
+const showErrorToast = (message: string) => {
+    errorMessage.value = message;
+    showError.value = true;
+};
 
 const startCamera = async () => {
     try {
@@ -66,7 +76,7 @@ const startCamera = async () => {
         }
     } catch (err) {
         console.error('Erreur accès caméra:', err);
-        alert('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
+        showErrorToast('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
     }
 };
 
@@ -123,7 +133,7 @@ const captureAndNext = async () => {
         const json = await res.json().catch(() => ({}));
         if (!res.ok || !json.success) {
             console.error('Erreur serveur:', json);
-            alert('Erreur lors de l\'analyse de l\'image sur le serveur.');
+            showErrorToast('Erreur lors de l\'analyse de l\'image sur le serveur.');
             isUploading.value = false;
             return;
         }
@@ -148,10 +158,10 @@ const captureAndNext = async () => {
     } catch (e: any) {
         if (e.name === 'AbortError') {
             console.error('Timeout contacting analysis server');
-            alert('Le serveur met trop de temps à répondre.');
+            showErrorToast('Le serveur met trop de temps à répondre.');
         } else {
             console.error('Erreur réseau:', e);
-            alert('Impossible de contacter le serveur d\'analyse.');
+            showErrorToast('Impossible de contacter le serveur d\'analyse.');
         }
         isUploading.value = false;
     }

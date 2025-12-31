@@ -40,6 +40,8 @@
         <button @click="goToCamera">Retour à la caméra</button>
       </div>
     </section>
+
+    <Toast :message="errorMessage" :show="showError" color="error" @close="showError = false" />
   </main>
 </template>
 
@@ -50,10 +52,19 @@ import AppHeader from '@/components/AppHeader.vue';
 import RoundedButton from '@/components/RoundedButton.vue';
 import camera from '@/assets/camera.png';
 import example1 from '@/assets/example1.png';
+import Toast from '@/components/Toast.vue';
+import { errorMessages } from 'vue/compiler-sfc';
 
 const photo = ref<string | null>(null);
 const analysis = ref<any>(null);
 const router = useRouter();
+
+const errorMessage = ref<string>('');
+const showError = ref<boolean>(false);
+const showErrorToast = (message: string) => {
+  errorMessage.value = message;
+  showError.value = true;
+};
 
 const photoDisplayRef = ref<HTMLElement | null>(null);
 const zoomImgRef = ref<HTMLImageElement | null>(null);
@@ -167,8 +178,21 @@ async function nextWithZoom() {
         }
       })
     });
+
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json.error) {
+      const serverMessage = json.error || 'Erreur inconnue du serveur';
+      console.warn('Erreur serveur /api/diameter', serverMessage);
+      showErrorToast(`Erreur serveur: ${serverMessage}`);
+      return;
+    }
+
+
   } catch (e) {
     console.warn('Erreur lors de l\'appel à /api/diameter', e);
+    showErrorToast('Erreur de communication avec le serveur. Veuillez réessayer.');
+    return;
   }
 
   // Calculate thread focus point: bottom center of the visible target rectangle
