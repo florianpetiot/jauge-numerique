@@ -70,7 +70,7 @@
             <div class="back-button" @click="router.push('Diameter')">
               <img :src="backArrow" alt="Flèche de retour">
             </div>
-            <RoundedButton label="Suivant" color="#09BC8A" @click="nextWithZoom" />
+            <RoundedButton label="Suivant" color="#09BC8A" @click="nextPage" />
           </div>
         </div>
       </div>
@@ -81,6 +81,8 @@
         <button @click="goToCamera">Retour à la caméra</button>
       </div>
     </section>
+
+    <Toast :message="errorMessage" :show="showError" color="error" @close="showError = false" />
   </main>
 </template>
 
@@ -91,10 +93,18 @@ import AppHeader from '@/components/AppHeader.vue';
 import RoundedButton from '@/components/RoundedButton.vue';
 import example2 from '@/assets/example2.png';
 import backArrow from '@/assets/back_arrow.png';
+import Toast from '@/components/Toast.vue';
 
 const photo = ref<string | null>(null);
 const analysis = ref<any>(null);
 const router = useRouter();
+
+const errorMessage = ref<string>('');
+const showError = ref<boolean>(false);
+const showErrorToast = (message: string) => {
+  errorMessage.value = message;
+  showError.value = true;
+};
 
 const photoDisplayRef = ref<HTMLElement | null>(null);
 const zoomImgRef = ref<HTMLImageElement | null>(null);
@@ -285,39 +295,42 @@ onMounted(async () => {
   await autoZoomToCenterPoint();
 });
 
-async function nextWithZoom() {
-  const m = getMatrix();
-  const { x, y, scale, angle } = decomposeMatrix(m);
 
-  try {
-    sessionStorage.setItem('transformMatrix', JSON.stringify(matrixState.value));
-    // On conserve aussi l'ancien format pour compat/debug
-    sessionStorage.setItem('transform', JSON.stringify({ x, y, scale, angle }));
-  } catch (err) {
-    console.warn('Impossible de sauvegarder transform', err);
+async function nextPage() {
+
+  let width_of_thread_px = 0;
+  const host = photoDisplayRef.value;
+  if (host) {
+    const containerW = host.clientWidth;
+    width_of_thread_px = linesWidth.value / 100 * containerW;
   }
 
   try {
-    const res = await fetch('/api/diameter', {
+    const res = await fetch('/api/threading', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        analysis: analysis.value,
-        transform: {
-          x,
-          y,
-          scale,
-          angle,
-          // La matrice complète est utile si tu veux une interprétation 100% exacte côté backend plus tard
-          matrix: matrixState.value
-        }
-      })
+        number_of_threads: numberOfLines.value,
+        width_of_thread: width_of_thread_px,
+      }),
     });
-  } catch (e) {
-    console.warn('Erreur lors de l\'appel à /api/diameter', e);
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json.error) {
+      const serverMessage = json.error || 'Erreur inconnue du serveur.';
+      showErrorToast(`Erreur serveur: ${serverMessage}`);
+      return;
+    }
+  }
+  catch (e) {
+    console.warn('Erreur lors de l\'appel à /api/threading', e);
+    showErrorToast('Erreur de communication avec le serveur. Veuillez réessayer.');
+    return;
   }
 
-  // router.push({ name: 'Home' });
+  router.push({ name: 'Results' });
 }
 
 // --- Gestion tactile native ---

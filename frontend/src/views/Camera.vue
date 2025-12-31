@@ -7,8 +7,8 @@
                 <div class="cache-up"></div>
                 <div class="cache-down"></div>
                 <div class="overlay">
-                    <div class="threading">Placez votre<br>filetage ici</div>
-                    <div class="coin">Placez une<br>pièce de<br>monnaie ici</div>
+                    <div ref="threadingRef" class="threading">Placez votre<br>filetage ici</div>
+                    <div ref="coinRef" class="coin">Placez une<br>pièce de<br>monnaie ici</div>
                 </div>
                 <video ref="videoRef" autoplay playsinline></video>
             </div>
@@ -31,6 +31,8 @@ import AppHeader from '@/components/AppHeader.vue';
 import Toast from '@/components/Toast.vue';
 
 const videoRef = ref<HTMLVideoElement | null>(null);
+const threadingRef = ref<HTMLDivElement | null>(null);  // Nouveau ref pour .threading
+const coinRef = ref<HTMLDivElement | null>(null);      // Nouveau ref pour .coin
 const router = useRouter();
 let stream: MediaStream | null = null;
 const isUploading = ref(false);
@@ -89,11 +91,12 @@ const stopCamera = () => {
 };
 
 const captureAndNext = async () => {
-    if (!videoRef.value || isUploading.value) return;
+    if (!videoRef.value || !threadingRef.value || !coinRef.value || isUploading.value) return;
     isUploading.value = true;
     const video = videoRef.value;
-    const width = video.videoWidth || 1280;
-    const height = video.videoHeight || 720;
+
+    const width = video.clientWidth || 1280;
+    const height = video.clientHeight || 720;
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -101,12 +104,16 @@ const captureAndNext = async () => {
     if (!ctx) { isUploading.value = false; return; }
     ctx.drawImage(video, 0, 0, width, height);
     const photo = canvas.toDataURL('image/jpeg', 0.92);
-
-    const top_threading = Math.round(0.17 * height);
-    const bottom_threading = Math.round(0.47 * height);
-    const diameter_piece = Math.round(0.33 * width);
-    const x_piece = Math.round(0.5 * width);
-    const y_piece = Math.round(height - 0.17 * height - (diameter_piece / 2));
+    
+    const videoRect = video.getBoundingClientRect();
+    const threadingRect = threadingRef.value.getBoundingClientRect();
+    const coinRect = coinRef.value.getBoundingClientRect();
+    
+    const top_threading = Math.round(threadingRect.top - videoRect.top);
+    const bottom_threading = Math.round(threadingRect.bottom - videoRect.top);
+    const diameter_piece = Math.round(coinRect.width);
+    const x_piece = Math.round(coinRect.left - videoRect.left + diameter_piece / 2);
+    const y_piece = Math.round(coinRect.top - videoRect.top + diameter_piece / 2);
 
 
     // Timeout helper
@@ -263,8 +270,8 @@ onBeforeUnmount(() => {
     .video-wrapper .overlay .threading {
         position: absolute;
         width: 100%;
-        height: 30%;
-        top: 17%;
+        height: 25%;
+        top: 15%;
         border-top: 2px solid #fff;
         border-bottom: 2px solid #fff;
         box-sizing: border-box;

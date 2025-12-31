@@ -23,6 +23,11 @@ const router = createRouter({
       name: 'Threading',
       component: () => import('../views/Threading.vue'),
     },
+    {
+      path: '/results',
+      name: 'Results',
+      component: () => import('../views/Results.vue'),
+    }
   ],
 })
 
