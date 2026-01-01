@@ -2,7 +2,7 @@
   <main>
     <AppHeader :header-scale="0.6" />
 
-    <section class="diameter-container">
+    <section class="threading-container">
       <div v-if="photo" class="content">
         <div class="photo-display" ref="photoDisplayRef">
             <div class="cache-up"></div>
@@ -330,6 +330,13 @@ async function nextPage() {
     return;
   }
 
+  // Sauvegarder la matrice finale (après auto-zoom) pour l'animation dans Results
+  try {
+    sessionStorage.setItem('threadingFinalMatrix', JSON.stringify(matrixState.value));
+  } catch (err) {
+    console.warn('Impossible de sauvegarder threadingFinalMatrix', err);
+  }
+
   router.push({ name: 'Results' });
 }
 
@@ -501,7 +508,7 @@ const goToCamera = () => router.push({ name: 'Camera' });
         align-items: center;
     }
 
-    .diameter-container {
+    .threading-container {
       width: 100%;
       max-width: 420px;
       display: flex;
