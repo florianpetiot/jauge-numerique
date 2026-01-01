@@ -24,6 +24,7 @@ const props = defineProps({
   justify-content: space-between;
   --header-scale: 1;
   margin-bottom: calc(2rem * var(--header-scale));
+  margin-top: calc(2rem * var(--header-scale));
   font-family: 'Inter', 'Roboto';
 }
 

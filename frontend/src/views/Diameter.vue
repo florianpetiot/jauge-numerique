@@ -352,7 +352,7 @@ const goToCamera = () => router.push({ name: 'Camera' });
       min-height: calc(var(--vh, 1vh) * 100);
         box-sizing: border-box;
         background-color: #fff;
-        padding: 2rem 0 0 0;
+        padding: 0;
         text-align: center;
         color: black;
         font-family: 'Inter', 'Roboto';

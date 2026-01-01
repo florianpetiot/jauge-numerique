@@ -95,14 +95,30 @@ const captureAndNext = async () => {
     isUploading.value = true;
     const video = videoRef.value;
 
-    const width = video.clientWidth || 1280;
-    const height = video.clientHeight || 720;
+    const wrapperWidth = video.clientWidth;
+    const wrapperHeight = video.clientHeight;
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = wrapperWidth;
+    canvas.height = wrapperHeight;
     const ctx = canvas.getContext('2d');
     if (!ctx) { isUploading.value = false; return; }
-    ctx.drawImage(video, 0, 0, width, height);
+
+    const wrapperAR = wrapperWidth / wrapperHeight;
+    const videoAR = videoWidth / videoHeight;
+
+    if (videoAR > wrapperAR) {
+        const visibleWidth = videoHeight * wrapperAR;
+        const offsetX = (videoWidth - visibleWidth) / 2;
+        ctx.drawImage(video, offsetX, 0, visibleWidth, videoHeight, 0, 0, wrapperWidth, wrapperHeight);
+    } else {
+        const visibleHeight = videoWidth / wrapperAR;
+        const offsetY = (videoHeight - visibleHeight) / 2;
+        ctx.drawImage(video, 0, offsetY, videoWidth, visibleHeight, 0, 0, wrapperWidth, wrapperHeight);
+    }
+
     const photo = canvas.toDataURL('image/jpeg', 0.92);
     
     const videoRect = video.getBoundingClientRect();
@@ -190,7 +206,7 @@ onBeforeUnmount(() => {
         min-height: calc(var(--vh, 1vh) * 100);
         box-sizing: border-box;
         background-color: #fff;
-        padding: 2rem 0 0 0;
+        padding: 0;
         text-align: center;
         color: black;
         font-family: 'Inter', 'Roboto';
@@ -301,9 +317,11 @@ onBeforeUnmount(() => {
         position: absolute;
         top: 0;
         width: 100%;
-        height: auto;
+        height: 100%;
+        overflow: hidden;
         display: block;
         object-fit: cover;
+        object-position: center;
         z-index: 1;
     }
 
