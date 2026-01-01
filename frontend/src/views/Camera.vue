@@ -169,6 +169,7 @@ const captureAndNext = async () => {
                 sessionStorage.removeItem('transformMatrix');
                 sessionStorage.removeItem('transform');
                 sessionStorage.removeItem('threadFocus');
+                sessionStorage.removeItem('threadingFinalMatrix')
             } catch (e) {
                 console.warn('Impossible de réinitialiser les clés de transform en sessionStorage', e);
             }

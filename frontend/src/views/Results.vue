@@ -39,8 +39,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import { useImageTransform } from '@/components/useImageTransform';
 import AppHeader from '@/components/AppHeader.vue';
 import RoundedButton from '@/components/RoundedButton.vue';
 import backArrow from '@/assets/back_arrow.png';
@@ -50,80 +51,7 @@ const router = useRouter();
 const photoDisplayRef = ref<HTMLElement | null>(null);
 const zoomImgRef = ref<HTMLImageElement | null>(null);
 
-type Matrix2D = { a: number; b: number; c: number; d: number; e: number; f: number; };
-const matrixState = ref<Matrix2D>({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
-
-const getMatrix = () => {
-    const m = matrixState.value;
-    return new DOMMatrix([m.a, m.b, m.c, m.d, m.e, m.f]);
-}
-const setMatrix = (matrix: DOMMatrix) => {
-    matrixState.value = { a: matrix.a, b: matrix.b, c: matrix.c, d: matrix.d, e: matrix.e, f: matrix.f };
-}
-
-const imgStyle = computed(() => {
-  const m = matrixState.value;
-  return {
-    transform: `matrix(${m.a}, ${m.b}, ${m.c}, ${m.d}, ${m.e}, ${m.f})`,
-    // Origine stable (top-left) => notre matrice est exprimée dans le repère du container
-    transformOrigin: '0 0'
-  };
-});
-
-const isAutoAnimating = ref(false);
-
-const waitForImageReady = async () => {
-    const img = zoomImgRef.value;
-    if (!img) return;
-    if (img.complete && img.naturalWidth > 0) return;
-    await new Promise<void>((resolve) => {
-        const onLoad = () => {
-            img.removeEventListener('load', onLoad);
-            img.removeEventListener('error', onError);
-            resolve();
-        };
-        const onError = () => {
-            img.removeEventListener('load', onLoad);
-            img.removeEventListener('error', onError);
-            resolve();
-        };
-        img.addEventListener('load', onLoad, { once: true });
-        img.addEventListener('error', onError, { once: true });
-    });
-};
-
-const animateMatrix = async (from: DOMMatrix, to: DOMMatrix, durationMs = 350) => {
-  isAutoAnimating.value = true;
-  const start = performance.now();
-  const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
-
-  await new Promise<void>((resolve) => {
-    const step = (now: number) => {
-      const t = Math.min(1, (now - start) / durationMs);
-      const k = easeInOut(t);
-
-      const m = new DOMMatrix([
-        from.a + (to.a - from.a) * k,
-        from.b + (to.b - from.b) * k,
-        from.c + (to.c - from.c) * k,
-        from.d + (to.d - from.d) * k,
-        from.e + (to.e - from.e) * k,
-        from.f + (to.f - from.f) * k,
-      ]);
-      setMatrix(m);
-
-      if (t < 1) {
-        requestAnimationFrame(step);
-        return;
-      }
-      resolve();
-    };
-
-    requestAnimationFrame(step);
-  });
-
-  isAutoAnimating.value = false;
-};
+const { imgStyle, setMatrix, waitForImageReady, animateMatrix } = useImageTransform();
 
 onMounted(async () => {
   // existing photo loading
@@ -139,7 +67,7 @@ onMounted(async () => {
   await nextTick();
 
   // Attendre que l'image soit réellement prête (dimensions stables)
-  await waitForImageReady();
+  await waitForImageReady(zoomImgRef.value);
 
   // Restaurer la matrice finale de Threading comme point de départ
   let startMatrix = new DOMMatrix();

@@ -67,7 +67,7 @@
           
           <div class="footer">
             <!-- <RoundedButton class="back-button" color="#6b6969" :icon-src="backArrow" :to="'/Diameter'" /> -->
-            <div class="back-button" @click="router.push('Diameter')">
+            <div class="back-button" @click="goBackToDiameter">
               <img :src="backArrow" alt="Flèche de retour">
             </div>
             <RoundedButton label="Suivant" color="#09BC8A" @click="nextPage" />
@@ -87,8 +87,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import { useImageTransform } from '@/components/useImageTransform';
 import AppHeader from '@/components/AppHeader.vue';
 import RoundedButton from '@/components/RoundedButton.vue';
 import example2 from '@/assets/example2.png';
@@ -109,90 +110,18 @@ const showErrorToast = (message: string) => {
 const photoDisplayRef = ref<HTMLElement | null>(null);
 const zoomImgRef = ref<HTMLImageElement | null>(null);
 
-type Matrix2D = { a: number; b: number; c: number; d: number; e: number; f: number };
-const matrixState = ref<Matrix2D>({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
-
-const getMatrix = () => {
-  const m = matrixState.value;
-  return new DOMMatrix([m.a, m.b, m.c, m.d, m.e, m.f]);
-};
-
-const setMatrix = (m: DOMMatrix) => {
-  matrixState.value = { a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f };
-};
-
-const decomposeMatrix = (m: DOMMatrix) => {
-  // Hypothèse: scale uniforme + rotation (ce que nos gestes produisent)
-  const scale = Math.hypot(m.a, m.b) || 1;
-  const angle = Math.atan2(m.b, m.a) * 180 / Math.PI;
-  return { x: m.e, y: m.f, scale, angle };
-};
-
-const imgStyle = computed(() => {
-  const m = matrixState.value;
-  return {
-    transform: `matrix(${m.a}, ${m.b}, ${m.c}, ${m.d}, ${m.e}, ${m.f})`,
-    // Origine stable (top-left) => notre matrice est exprimée dans le repère du container
-    transformOrigin: '0 0'
-  };
-});
+const {
+  matrixState,
+  isAutoAnimating,
+  getMatrix,
+  setMatrix,
+  decomposeMatrix,
+  imgStyle,
+  waitForImageReady,
+  animateMatrix,
+} = useImageTransform();
 
 const clamp = (v: number, a = 0.5, b = 5) => Math.max(a, Math.min(b, v));
-
-const isAutoAnimating = ref(false);
-
-const waitForImageReady = async () => {
-  const img = zoomImgRef.value;
-  if (!img) return;
-  if (img.complete && img.naturalWidth > 0) return;
-  await new Promise<void>((resolve) => {
-    const onLoad = () => {
-      img.removeEventListener('load', onLoad);
-      img.removeEventListener('error', onError);
-      resolve();
-    };
-    const onError = () => {
-      img.removeEventListener('load', onLoad);
-      img.removeEventListener('error', onError);
-      resolve();
-    };
-    img.addEventListener('load', onLoad, { once: true });
-    img.addEventListener('error', onError, { once: true });
-  });
-};
-
-const animateMatrix = async (from: DOMMatrix, to: DOMMatrix, durationMs = 350) => {
-  isAutoAnimating.value = true;
-  const start = performance.now();
-  const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
-
-  await new Promise<void>((resolve) => {
-    const step = (now: number) => {
-      const t = Math.min(1, (now - start) / durationMs);
-      const k = easeInOut(t);
-
-      const m = new DOMMatrix([
-        from.a + (to.a - from.a) * k,
-        from.b + (to.b - from.b) * k,
-        from.c + (to.c - from.c) * k,
-        from.d + (to.d - from.d) * k,
-        from.e + (to.e - from.e) * k,
-        from.f + (to.f - from.f) * k,
-      ]);
-      setMatrix(m);
-
-      if (t < 1) {
-        requestAnimationFrame(step);
-        return;
-      }
-      resolve();
-    };
-
-    requestAnimationFrame(step);
-  });
-
-  isAutoAnimating.value = false;
-};
 
 const autoZoomToCenterPoint = async () => {
   const host = photoDisplayRef.value;
@@ -291,7 +220,7 @@ onMounted(async () => {
   await nextTick();
 
   // Attendre que l'image soit réellement prête (dimensions stables) puis auto-zoom animé
-  await waitForImageReady();
+  await waitForImageReady(zoomImgRef.value);
   await autoZoomToCenterPoint();
 });
 
@@ -484,6 +413,17 @@ function stopWidthRepeat() {
 
 const goHome = () => router.push({ name: 'Home' });
 const goToCamera = () => router.push({ name: 'Camera' });
+
+const goBackToDiameter = () => {
+  // Sauvegarder l'état courant (même si on ne passe pas par Results)
+  try {
+    sessionStorage.setItem('threadingFinalMatrix', JSON.stringify(matrixState.value));
+  } catch (err) {
+    console.warn('Impossible de sauvegarder threadingFinalMatrix', err);
+  }
+
+  router.push({ name: 'Diameter' });
+};
 
 
 </script>

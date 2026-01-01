@@ -46,14 +46,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import { useImageTransform } from '@/components/useImageTransform';
 import AppHeader from '@/components/AppHeader.vue';
 import RoundedButton from '@/components/RoundedButton.vue';
 import camera from '@/assets/camera.png';
 import example1 from '@/assets/example1.png';
 import Toast from '@/components/Toast.vue';
-import { errorMessages } from 'vue/compiler-sfc';
 
 const photo = ref<string | null>(null);
 const analysis = ref<any>(null);
@@ -69,38 +69,23 @@ const showErrorToast = (message: string) => {
 const photoDisplayRef = ref<HTMLElement | null>(null);
 const zoomImgRef = ref<HTMLImageElement | null>(null);
 
-type Matrix2D = { a: number; b: number; c: number; d: number; e: number; f: number };
-const matrixState = ref<Matrix2D>({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
-
-const getMatrix = () => {
-  const m = matrixState.value;
-  return new DOMMatrix([m.a, m.b, m.c, m.d, m.e, m.f]);
-};
-
-const setMatrix = (m: DOMMatrix) => {
-  matrixState.value = { a: m.a, b: m.b, c: m.c, d: m.d, e: m.e, f: m.f };
-};
-
-const decomposeMatrix = (m: DOMMatrix) => {
-  // Hypothèse: scale uniforme + rotation (ce que nos gestes produisent)
-  const scale = Math.hypot(m.a, m.b) || 1;
-  const angle = Math.atan2(m.b, m.a) * 180 / Math.PI;
-  return { x: m.e, y: m.f, scale, angle };
-};
-
-const imgStyle = computed(() => {
-  const m = matrixState.value;
-  return {
-    transform: `matrix(${m.a}, ${m.b}, ${m.c}, ${m.d}, ${m.e}, ${m.f})`,
-    // Origine stable (top-left) => notre matrice est exprimée dans le repère du container
-    transformOrigin: '0 0'
-  };
-});
+const {
+  matrixState,
+  isAutoAnimating,
+  getMatrix,
+  setMatrix,
+  decomposeMatrix,
+  imgStyle,
+  waitForImageReady,
+  animateMatrix,
+} = useImageTransform();
 
 const clamp = (v: number, a = 0.5, b = 5) => Math.max(a, Math.min(b, v));
 
 onMounted(async () => {
-  // Restore previous transform (priorité à la matrice)
+  // Restore previous transform (priorité à la matrice) + animation de retour si on vient de Threading
+  let targetMatrix = new DOMMatrix();
+  let hasTargetMatrix = false;
   try {
     const tm = sessionStorage.getItem('transformMatrix');
     if (tm) {
@@ -112,6 +97,8 @@ onMounted(async () => {
         typeof parsed.e === 'number' && typeof parsed.f === 'number'
       ) {
         matrixState.value = parsed;
+        targetMatrix = new DOMMatrix([parsed.a, parsed.b, parsed.c, parsed.d, parsed.e, parsed.f]);
+        hasTargetMatrix = true;
       }
     } else {
       // Compat: ancien format {x,y,scale,angle}
@@ -124,6 +111,8 @@ onMounted(async () => {
         const angle = typeof parsed.angle === 'number' ? parsed.angle : 0;
         const m = new DOMMatrix().translate(x, y).rotate(angle).scale(scale);
         setMatrix(m);
+        targetMatrix = m;
+        hasTargetMatrix = true;
       }
     }
   } catch (err) {
@@ -149,6 +138,29 @@ onMounted(async () => {
 
   // wait nextTick so template is rendered and refs (img) are available
   await nextTick();
+
+  // Attendre que l'image soit réellement prête (dimensions stables)
+  await waitForImageReady(zoomImgRef.value);
+
+  // Si on a une matrice de Threading, animer vers la matrice cible (Diameter)
+  try {
+    const raw = sessionStorage.getItem('threadingFinalMatrix');
+    if (raw && hasTargetMatrix) {
+      const parsed = JSON.parse(raw);
+      if (
+        parsed &&
+        typeof parsed.a === 'number' && typeof parsed.b === 'number' &&
+        typeof parsed.c === 'number' && typeof parsed.d === 'number' &&
+        typeof parsed.e === 'number' && typeof parsed.f === 'number'
+      ) {
+        const startMatrix = new DOMMatrix([parsed.a, parsed.b, parsed.c, parsed.d, parsed.e, parsed.f]);
+        setMatrix(startMatrix);
+        await animateMatrix(startMatrix, targetMatrix, 700);
+      }
+    }
+  } catch (e) {
+    console.warn('Impossible de restaurer threadingFinalMatrix pour animation de retour', e);
+  }
 });
 
 async function nextWithZoom() {
@@ -282,10 +294,12 @@ function resetFromTouches(e: TouchEvent) {
 }
 
 function onTouchStart(e: TouchEvent) {
+  if (isAutoAnimating.value) return;
   resetFromTouches(e);
 }
 
 function onTouchMove(e: TouchEvent) {
+  if (isAutoAnimating.value) return;
   const touches = e.touches;
   if (touches.length === 1 && panActive) {
     const t = touches.item(0);
@@ -337,6 +351,7 @@ function onTouchMove(e: TouchEvent) {
 }
 
 function onTouchEnd(e: TouchEvent) {
+  if (isAutoAnimating.value) return;
   // recalibrage quand le nombre de doigts change
   resetFromTouches(e);
 }
