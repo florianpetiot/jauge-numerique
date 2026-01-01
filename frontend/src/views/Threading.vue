@@ -31,35 +31,35 @@
           <div class="controllers">
             <div class="controller">
               <p>Nombre de repères</p>
-              <button
-                @click="decreaseLines"
-              >-</button>
-              <!-- <span>{{ numberOfLines }}</span> -->
-              <button
-                @click="increaseLines"
-              >+</button>
+              <div class="increments">
+                <div class="minus" @click="decreaseLines">-</div>
+                <!-- <div class="separator"></div> -->
+                <div class="plus" @click="increaseLines">+</div>
+              </div>
             </div>
             <div class="controller">
               <p>Largeur des repères</p>
-              <button
-                @mousedown="startDecreaseLinesWidth"
-                @mouseup="stopWidthRepeat"
-                @mouseleave="stopWidthRepeat"
-                @touchstart.prevent="startDecreaseLinesWidth"
-                @touchend="stopWidthRepeat"
-                @touchcancel="stopWidthRepeat"
-                @contextmenu.prevent
-              >-</button>
-              <!-- <span>{{ linesWidth }}</span> -->
-              <button
-                @mousedown="startIncreaseLinesWidth"
-                @mouseup="stopWidthRepeat"
-                @mouseleave="stopWidthRepeat"
-                @touchstart.prevent="startIncreaseLinesWidth"
-                @touchend="stopWidthRepeat"
-                @touchcancel="stopWidthRepeat"
-                @contextmenu.prevent
-              >+</button>
+              <div class="increments">
+                <div class="minus" :class="{ active: minusActive }"
+                  @mousedown="startDecreaseLinesWidth"
+                  @mouseup="stopWidthRepeat"
+                  @mouseleave="stopWidthRepeat"
+                  @touchstart.prevent="startDecreaseLinesWidth"
+                  @touchend="stopWidthRepeat"
+                  @touchcancel="stopWidthRepeat"
+                  @contextmenu.prevent
+                >-</div>
+                <!-- <span>{{ linesWidth }}</span> -->
+                <div class="plus " :class="{ active: plusActive }"
+                  @mousedown="startIncreaseLinesWidth"
+                  @mouseup="stopWidthRepeat"
+                  @mouseleave="stopWidthRepeat"
+                  @touchstart.prevent="startIncreaseLinesWidth"
+                  @touchend="stopWidthRepeat"
+                  @touchcancel="stopWidthRepeat"
+                  @contextmenu.prevent
+                >+</div>
+              </div>
             </div>
           </div>
     
@@ -437,8 +437,11 @@ function decreaseLinesWidth() {
 // Repeat-on-hold support
 let widthTimer: number | null = null;
 let widthInterval: number | null = null;
+const minusActive = ref(false);
+const plusActive = ref(false);
 
 function startIncreaseLinesWidth() {
+  plusActive.value = true;
   increaseLinesWidth();
   if (widthTimer) return;
   widthTimer = window.setTimeout(() => {
@@ -448,6 +451,7 @@ function startIncreaseLinesWidth() {
 }
 
 function startDecreaseLinesWidth() {
+  minusActive.value = true;
   decreaseLinesWidth();
   if (widthTimer) return;
   widthTimer = window.setTimeout(() => {
@@ -457,6 +461,8 @@ function startDecreaseLinesWidth() {
 }
 
 function stopWidthRepeat() {
+  minusActive.value = false;
+  plusActive.value = false;
   if (widthTimer) {
     clearTimeout(widthTimer);
     widthTimer = null;
@@ -602,10 +608,64 @@ const goToCamera = () => router.push({ name: 'Camera' });
     }
 
 
+    .explanations .controllers {
+        width: 70%;
+        align-self: center;
+    }
+
     .explanations .controller {
         display: flex;
-        justify-content: space-around;
+        justify-content: space-between;
+        height: 2rem;
         margin: 0.5rem 0;
+    }
+
+    .explanations .controller p {
+        margin: 0;
+        align-self: center;
+    }
+
+    .explanations .controller .increments {
+        display: flex;
+        width: 5rem;
+        font-weight: 300;
+    }
+    
+    .explanations .controller .increments .minus,
+    .explanations .controller .increments .plus{
+        background-color: #ececec;
+        height: 100%;
+        width: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        user-select: none;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .explanations .controller .increments .minus {
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
+        border-right: 1px solid #b5b5b5;
+    }
+    .explanations .controller .increments .plus {
+        border-top-right-radius: 8px;
+        border-bottom-right-radius: 8px;
+    }
+
+
+    .explanations .controller .increments button {
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
+    }
+
+    .explanations .controller .increments .minus:active,
+    .explanations .controller .increments .plus:active,
+    .explanations .controller .increments .minus.active,
+    .explanations .controller .increments .plus.active {
+        background-color: #d4d4d4;
     }
 
     .explanations img {
