@@ -1,0 +1,43 @@
+Boulon : diametre 21 mm, longueur zone : 10 mm , pas : 1.75 mm 
+
+resultats outil: 
+
+////////////////////////////////
+EXPERIENCE 1
+
+Nombre de sinusoïdes au départ (ex: 10, Entrée pour défaut) : 6
+>> Sélectionnez : 1. La Pièce (Calibration) -> 2. L'Objet (Vis)
+[Calibration] Diamètre px=351.7 -> Ratio=0.06895 mm/px
+
+Commandes : SOURIS(Bouger/Redim), R(Rotation), J/L(Freq), K/I(Amp), U/O(Phase), V(Valider)
+
+===== RÉSULTATS =====
+Diamètre estimé : 21.79 mm
+Longueur zone   : 10.76 mm
+Nombre de filets: 6.0
+Pas (Pitch)     : 1.793 mm
+=====================
+
+precision pas : ±0.007 mm
+precision longueur zone : ±0.8 mm
+precision diametre : ±0.8 mm
+
+EXPERIENCE 
+
+/Polytech/4émeAnnée/Ptrans/Countouring_PTRANS/OutilV3/main.py
+Nombre de sinusoïdes au départ (ex: 10, Entrée pour défaut) : 6
+>> Sélectionnez : 1. La Pièce (Calibration) -> 2. L'Objet (Vis)
+[Calibration] Diamètre px=351.8 -> Ratio=0.06894 mm/px
+
+Commandes : SOURIS(Bouger/Redim), R(Rotation), J/L(Freq), K/I(Amp), U/O(Phase), V(Valider)
+
+===== RÉSULTATS =====
+Diamètre estimé : 21.72 mm
+Longueur zone   : 10.75 mm
+Nombre de filets: 6.0
+Pas (Pitch)     : 1.792 mm
+=====================
+
+precision pas : ±0.08 mm
+precision longueur zone : ±0.75 mm
+precision diametre : ±0.72 mm
