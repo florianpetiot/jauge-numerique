@@ -1,93 +1,161 @@
-# lmdt jauge numerique
+Outil de Mesure de Filetage (Computer Vision)
+Présentation
 
+Cet outil est une application interactive de vision par ordinateur permettant de mesurer des objets filetés (ex. vis) à partir d’une image unique.
+Il combine calibration d’échelle, sélection de régions d’intérêt (ROI) et ajustement manuel d’un modèle sinusoïdal afin d’estimer des dimensions physiques telles que le diamètre, le pas de filetage et le nombre de filets, en s’appuyant sur OpenCV.
 
+Le fonctionnement est volontairement semi-automatique : les traitements automatiques sont utilisés lorsqu’ils sont robustes, et l’interaction utilisateur intervient lorsque la vision pure devient ambiguë (alignement des filets).
 
-## Getting started
+Workflow global
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+Chargement d’une image contenant :
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+un objet de référence de dimensions connues (pièce)
 
-## Add your files
+l’objet fileté à mesurer
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+Sélection manuelle par l’utilisateur :
 
-```
-cd existing_repo
-git remote add origin https://gitlab.univ-nantes.fr/E223051X/lmdt-jauge-numerique.git
-git branch -M main
-git push -uf origin main
-```
+ROI 1 : objet de référence (calibration)
 
-## Integrate with your tools
+ROI 2 : objet fileté
 
-- [ ] [Set up project integrations](https://gitlab.univ-nantes.fr/E223051X/lmdt-jauge-numerique/-/settings/integrations)
+Calibration automatique de l’échelle pixel → millimètre
 
-## Collaborate with your team
+Superposition interactive d’une jauge sinusoïdale sur l’objet
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+Ajustement manuel de la jauge par l’utilisateur
 
-## Test and Deploy
+Calcul et affichage des mesures physiques finales
 
-Use the built-in continuous integration in GitLab.
+Pipeline de traitement d’image et de données utilisateur
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+Sélection des ROI
 
-***
+L’utilisateur trace deux rectangles sur une image redimensionnée
 
-# Editing this README
+Les coordonnées sont reconverties vers la résolution originale
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Calibration (Pixel → mm)
 
-## Suggestions for a good README
+Conversion en niveaux de gris
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Réduction du bruit par filtre médian
 
-## Name
-Choose a self-explaining name for your project.
+Détection de contours circulaires par transformée de Hough
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Calcul du ratio millimètre par pixel à partir du diamètre réel connu
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Préparation de l’objet à mesurer
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+Zoom d’affichage pour améliorer la précision visuelle
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+Conservation de l’échelle réelle pour les calculs finaux
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+Interaction utilisateur
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+Déplacement et redimensionnement de la jauge à la souris
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Ajustement clavier de la fréquence, amplitude, phase et rotation
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+Validation explicite par l’utilisateur
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Calculs finaux
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+Conversion des mesures pixel vers l’échelle réelle
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+Calcul du diamètre, de la longueur analysée et du pas de filetage
 
-## License
-For open source projects, say how it is licensed.
+Techniques de contouring et de vision utilisées
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Filtre médian pour la réduction du bruit tout en préservant les bords
+
+Transformée de Hough pour les cercles :
+
+Détection robuste de l’objet de calibration
+
+Tolérance aux contours incomplets et aux variations d’éclairage
+
+Ajustement sinusoïdal manuel :
+
+Évite les erreurs des méthodes automatiques sur textures complexes
+
+L’alignement visuel humain garantit une meilleure fiabilité
+
+Superposition avec canal alpha :
+
+Affichage non destructif
+
+Séparation claire entre image source et couche de mesure
+
+Structure des fichiers et rôles
+main.py
+
+Point d’entrée de l’application.
+Gère l’ensemble du pipeline :
+
+saisie utilisateur
+
+chargement de l’image
+
+sélection des ROI
+
+calibration
+
+interaction de mesure
+
+calculs finaux et affichage des résultats
+
+config.py
+
+Fichier de configuration centralisé :
+
+constantes physiques (diamètre réel de référence)
+
+paramètres d’affichage
+
+couleurs
+
+chemin de l’image par défaut
+
+Permet d’ajuster le comportement sans modifier la logique.
+
+roi_selector.py
+
+Gestion de la sélection interactive des zones d’intérêt :
+
+affichage redimensionné pour l’ergonomie
+
+gestion des événements souris
+
+conversion des coordonnées écran vers l’image originale
+
+Retourne les crops haute résolution.
+
+calibrator.py
+
+Responsable de la calibration métrique :
+
+détection de l’objet de référence
+
+calcul du ratio mm/pixel
+
+validation de la calibration
+
+Implémente la détection de cercles via OpenCV.
+
+gauge.py
+
+Implémente la jauge de mesure interactive :
+
+rectangle de sélection
+
+modèle sinusoïdal représentant le filetage
+
+gestion souris (déplacement / redimensionnement)
+
+gestion clavier (fréquence, amplitude, phase, rotation)
+
+rendu avec transparence (alpha blending)
+
+Expose les métriques en pixels nécessaires aux calculs finaux.
