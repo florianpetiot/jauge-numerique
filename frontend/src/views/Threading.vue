@@ -336,7 +336,7 @@ function onTouchEnd(e: TouchEvent) {
 
 
 // CONTROLE DES REPERES
-const numberOfLines = ref(5);
+const numberOfLines = ref(8);
 const linesWidth = ref(60);
 const lineWidth = 4; // px
 

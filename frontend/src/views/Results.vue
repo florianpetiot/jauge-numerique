@@ -16,7 +16,7 @@
 
                 <div class="explanations">
                 <div>
-                    <h2>résultats de l'analyse</h2>
+                    <h2>Résultats de l'analyse</h2>
                     <p>Ici seront affichés les résultats de l'analyse.</p>
                 </div>
                 
@@ -225,7 +225,7 @@ const goToCamera = () => router.push({ name: 'Camera' });
       display: flex;
       flex-direction: column;
       /* align-items: center; */
-      justify-content: space-evenly;
+      justify-content: space-between;
       min-height: 0;
       overflow: auto;
       padding: 0 0.75rem 1rem 0.75rem;
