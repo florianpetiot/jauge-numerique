@@ -138,7 +138,7 @@ const captureAndNext = async () => {
 
     try {
         // Utilise URL relative pour passer par le proxy Vite en dev
-        const res = await fetch('/api/analyze', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

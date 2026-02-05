@@ -235,7 +235,7 @@ async function nextPage() {
   }
 
   try {
-    const res = await fetch('/api/threading', {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/threading`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
