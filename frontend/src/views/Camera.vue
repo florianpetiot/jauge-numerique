@@ -138,7 +138,7 @@ const captureAndNext = async () => {
 
     try {
         // Utilise URL relative pour passer par le proxy Vite en dev
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/analyze`, {
+        const res = await fetch(`/api/analyze`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -163,7 +163,12 @@ const captureAndNext = async () => {
 
         try {
             sessionStorage.setItem('capturedPhoto', photo);
-            sessionStorage.setItem('analysisResult', JSON.stringify(json));
+            sessionStorage.setItem('analysisResult', JSON.stringify({
+                diameter_piece_px: diameter_piece,
+                x_piece: x_piece,
+                y_piece: y_piece,
+                mm_per_pixel: json.mm_per_pixel,
+            }));
             // Reset any previous image transform (avoid arriving zoomed)
             try {
                 sessionStorage.removeItem('transformMatrix');
