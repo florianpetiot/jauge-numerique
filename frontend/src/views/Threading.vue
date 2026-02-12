@@ -234,29 +234,55 @@ async function nextPage() {
     width_of_thread_px = linesWidth.value / 100 * containerW;
   }
 
-  try {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/threading`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        number_of_threads: numberOfLines.value,
-        width_of_thread: width_of_thread_px,
-      }),
-    });
+  // try {
+  //   const res = await fetch(`${import.meta.env.VITE_API_URL}/api/threading`, {
+  //     method: 'POST',
+  //     headers: {
+  //       'Content-Type': 'application/json',
+  //     },
+  //     body: JSON.stringify({
+  //       number_of_threads: numberOfLines.value,
+  //       width_of_thread: width_of_thread_px,
+  //     }),
+  //   });
 
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || json.error) {
-      const serverMessage = json.error || 'Erreur inconnue du serveur.';
-      showErrorToast(`Erreur serveur: ${serverMessage}`);
-      return;
-    }
+  //   const json = await res.json().catch(() => ({}));
+  //   if (!res.ok || json.error) {
+  //     const serverMessage = json.error || 'Erreur inconnue du serveur.';
+  //     showErrorToast(`Erreur serveur: ${serverMessage}`);
+  //     return;
+  //   }
+  // }
+  // catch (e) {
+  //   console.warn('Erreur lors de l\'appel à /api/threading', e);
+  //   showErrorToast('Erreur de communication avec le serveur. Veuillez réessayer.');
+  //   return;
+  // }
+
+  // get width of .lines in pixels
+  let linesWidthPx = 0;
+  if (host) { 
+    const containerW = host.clientWidth;
+    linesWidthPx = (linesWidth.value / 100) * containerW;
+    linesWidthPx = linesWidthPx / decomposeMatrix(getMatrix()).scale; // prendre en compte le zoom actuel linesWidthPx = realLinesWidthPx;
   }
-  catch (e) {
-    console.warn('Erreur lors de l\'appel à /api/threading', e);
-    showErrorToast('Erreur de communication avec le serveur. Veuillez réessayer.');
-    return;
+  
+  try {
+    sessionStorage.setItem('analysisResult',
+    JSON.stringify({
+      ...(analysis.value || {}),
+      'threading_width_px': linesWidthPx, 
+      'threading_number_of_threads': numberOfLines.value
+    })); 
+
+    const analysisValue = analysis.value;
+    const diameter_mm = analysisValue?.mm_per_pixel * analysisValue?.threading_height_px
+    const threading_lenght_mm = analysisValue?.mm_per_pixel * linesWidthPx;
+
+    console.warn({...(analysis.value || {}), 'threading_width_px': linesWidthPx, 'threading_number_of_threads': numberOfLines.value, 'diameter_mm': diameter_mm, 'threading_lenght_mm': threading_lenght_mm});
+
+  } catch (err) { 
+    console.warn('Impossible de sauvegarder analysisResult avec threading data', err);
   }
 
   // Sauvegarder la matrice finale (après auto-zoom) pour l'animation dans Results

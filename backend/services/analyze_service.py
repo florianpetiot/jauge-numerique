@@ -19,6 +19,27 @@ import cv2
 import numpy as np
 
 
+def crop_coin_region(
+    image: cv2.typing.MatLike, x_center: float, y_center: float, diameter_px: float, padding: float = 0.25
+):
+    # Crop the area around the detected coin position to simplify circle detection
+    if diameter_px <= 0:
+        return image
+
+    h, w = image.shape[:2]
+    radius = diameter_px * (0.5 + padding)
+
+    x0 = max(int(x_center - radius), 0)
+    y0 = max(int(y_center - radius), 0)
+    x1 = min(int(x_center + radius), w)
+    y1 = min(int(y_center + radius), h)
+
+    if x1 - x0 < 2 or y1 - y0 < 2:
+        return image
+
+    return image[y0:y1, x0:x1].copy()
+
+
 class Calibrator:
     def __init__(self, real_diameter_mm: float):
         self.real_diameter = real_diameter_mm

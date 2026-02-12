@@ -175,39 +175,41 @@ async function nextWithZoom() {
     console.warn('Impossible de sauvegarder transform', err);
   }
 
-  try {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diameter`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        // analysis: analysis.value,
-        transform: {
-          x,
-          y,
-          scale,
-          angle,
-          matrix: matrixState.value
-        }
-      })
-    });
+  // try {
+  //   const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diameter`, {
+  //     method: 'POST',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify({
+  //       // analysis: analysis.value,
+  //       transform: {
+  //         x,
+  //         y,
+  //         scale,
+  //         angle,
+  //         matrix: matrixState.value
+  //       }
+  //     })
+  //   });
 
 
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || json.error) {
-      const serverMessage = json.error || 'Erreur inconnue du serveur';
-      console.warn('Erreur serveur /api/diameter', serverMessage);
-      showErrorToast(`Erreur serveur: ${serverMessage}`);
-      return;
-    }
+  //   const json = await res.json().catch(() => ({}));
+  //   if (!res.ok || json.error) {
+  //     const serverMessage = json.error || 'Erreur inconnue du serveur';
+  //     console.warn('Erreur serveur /api/diameter', serverMessage);
+  //     showErrorToast(`Erreur serveur: ${serverMessage}`);
+  //     return;
+  //   }
 
 
-  } catch (e) {
-    console.warn('Erreur lors de l\'appel à /api/diameter', e);
-    showErrorToast('Erreur de communication avec le serveur. Veuillez réessayer.');
-    return;
-  }
+  // } catch (e) {
+  //   console.warn('Erreur lors de l\'appel à /api/diameter', e);
+  //   showErrorToast('Erreur de communication avec le serveur. Veuillez réessayer.');
+  //   return;
+  // }
+
 
   // Calculate thread focus point: bottom center of the visible target rectangle
+  // an store target height in sessionStorage
   try {
     const host = photoDisplayRef.value;
     if (host) {
@@ -225,6 +227,19 @@ async function nextWithZoom() {
       } catch (inner) {
         console.warn('Impossible d\'inverser la matrice pour calculer threadFocus', inner);
       }
+      
+      const targetHeight = rect.height * 0.3 ; // 30% de la hauteur du container
+      const realHeightPx = targetHeight / scale; // convertir en coordonnées image
+      try {
+        sessionStorage.setItem('analysisResult',
+        JSON.stringify({ 
+          ...(analysis.value || {}), 
+          'threading_height_px': realHeightPx 
+        }));
+      } catch (e) { 
+        console.warn('Impossible de mettre à jour analysisResult avec realHeightPx', e);
+      }
+    
     }
   } catch (err) {
     console.warn('Erreur en calculant threadFocus', err);

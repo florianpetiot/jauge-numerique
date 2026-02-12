@@ -2,7 +2,7 @@ import logging
 
 from flask import Blueprint, Response, jsonify, request
 
-from services.analyze_service import Calibrator
+from services.analyze_service import Calibrator, crop_coin_region
 from utils.constants import REAL_DIAMETER_MM
 from utils.image_converter import convert_image_base64_to_cv2
 from models.inputs import CameraInput
@@ -22,14 +22,15 @@ def analyze(body: CameraInput) -> Response:
     )
 
     # Utilisez body au lieu de request pour extraire les données validées
-    image_cv2 =  convert_image_base64_to_cv2(body.image_base64)
+    image_cv2 = convert_image_base64_to_cv2(body.image_base64)
     logger.info("Image reçue (shape=%s)", image_cv2.shape)
 
-    # result = find_scale(image_cv2, body.top_threading, body.bottom_threading,
-    #                     body.diameter_piece, body.x_piece, body.y_piece)
+    # Focus the calibration on the coin area provided by the client overlay
+    cropped = crop_coin_region(image_cv2, body.x_piece, body.y_piece, body.diameter_piece)
+    logger.info("Zone recadrée pour la pièce (shape=%s)", cropped.shape)
 
     calib = Calibrator(REAL_DIAMETER_MM)
-    mm_per_pixel = calib.calibrate(image_cv2)
+    mm_per_pixel = calib.calibrate(cropped)
     if not mm_per_pixel:
         logger.warning("[Analyse] Échec de la calibration : aucune pièce détectée")
         return jsonify({"success": False, "error": "Calibration failed: no piece detected"})
