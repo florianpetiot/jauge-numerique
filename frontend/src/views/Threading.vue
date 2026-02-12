@@ -268,16 +268,18 @@ async function nextPage() {
   }
   
   try {
+    const analysisValue = analysis.value;
+    const diameter_mm = analysisValue?.mm_per_pixel * analysisValue?.threading_height_px
+    const threading_lenght_mm = analysisValue?.mm_per_pixel * linesWidthPx;
+
     sessionStorage.setItem('analysisResult',
     JSON.stringify({
       ...(analysis.value || {}),
       'threading_width_px': linesWidthPx, 
-      'threading_number_of_threads': numberOfLines.value
+      'threading_number_of_threads': numberOfLines.value,
+      'threading_height_mm': diameter_mm, 
+      'threading_lenght_mm': threading_lenght_mm
     })); 
-
-    const analysisValue = analysis.value;
-    const diameter_mm = analysisValue?.mm_per_pixel * analysisValue?.threading_height_px
-    const threading_lenght_mm = analysisValue?.mm_per_pixel * linesWidthPx;
 
     console.warn({...(analysis.value || {}), 'threading_width_px': linesWidthPx, 'threading_number_of_threads': numberOfLines.value, 'diameter_mm': diameter_mm, 'threading_lenght_mm': threading_lenght_mm});
 

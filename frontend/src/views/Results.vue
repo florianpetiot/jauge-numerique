@@ -18,6 +18,7 @@
                 <div>
                     <h2>Résultats de l'analyse</h2>
                     <p>Ici seront affichés les résultats de l'analyse.</p>
+                    <p id="analysisResult" ref="analysisResult"></p>
                 </div>
                 
                 <div class="footer">
@@ -50,6 +51,7 @@ const photo = ref<string | null>(null);
 const router = useRouter();
 const photoDisplayRef = ref<HTMLElement | null>(null);
 const zoomImgRef = ref<HTMLImageElement | null>(null);
+const analysisResult = ref<HTMLElement | null>(null);
 
 const { imgStyle, setMatrix, waitForImageReady, animateMatrix } = useImageTransform();
 
@@ -121,6 +123,21 @@ onMounted(async () => {
 
   // Animer le dézoom de la matrice de départ vers la matrice cible
   await animateMatrix(startMatrix, targetMatrix, 700);
+
+  // Récupérer et afficher les résultats d'analyse depuis sessionStorage
+  try {
+    const results = sessionStorage.getItem('analysisResult');
+    if (results && analysisResult.value) {
+      try {
+        const parsed = JSON.parse(results);
+        analysisResult.value.innerHTML = '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>';
+      } catch (parseErr) {
+        analysisResult.value.innerHTML = results;
+      }
+    }
+  } catch (e) {
+    console.warn('Impossible de lire analysisResult depuis sessionStorage', e);
+  }
 });
 
 const nextPage = () => {
