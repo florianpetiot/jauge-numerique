@@ -13,9 +13,16 @@
                 <video ref="videoRef" autoplay playsinline></video>
             </div>
 
-            <div class="shutter" :class="{ disabled: isUploading }" @click="captureAndNext">
-                <div class="first-circle"></div>
-                <div class="second-circle"></div>
+            <div class="controls">
+                <svg class="flash" :class="{ active: flashEnabled }" @click="toggleFlash" width="10" height="14" viewBox="0 0 10 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 0.5V5.5H9.5L4 13.5V8.5H0.5L6 0.5Z" fill="#fff"/>
+                    <path d="M6 0.5V5.5H9.5L4 13.5V8.5H0.5L6 0.5Z" stroke="#000" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="shutter" :class="{ disabled: isUploading }" @click="captureAndNext">
+                    <div class="first-circle"></div>
+                    <div class="second-circle"></div>
+                </div>
+                <div class="right" style="width: 10px;"></div>
             </div>
         </section>
 
@@ -38,10 +45,33 @@ let stream: MediaStream | null = null;
 const isUploading = ref(false);
 const errorMessage = ref('');
 const showError = ref(false);
+const flashEnabled = ref(false);
 
 const showErrorToast = (message: string) => {
     errorMessage.value = message;
     showError.value = true;
+};
+
+const toggleFlash = async () => {
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    if (!track) return;
+
+    const capabilities = track.getCapabilities();
+    if (!(capabilities as any).torch) {
+        showErrorToast('Le flash n\'est pas supporté sur cet appareil.');
+        return;
+    }
+
+    try {
+        await track.applyConstraints({
+            advanced: [{ torch: !flashEnabled.value } as any]
+        } as any);
+        flashEnabled.value = !flashEnabled.value;
+    } catch (err) {
+        console.error('Erreur lors du basculement du flash:', err);
+        showErrorToast('Impossible de basculer le flash.');
+    }
 };
 
 const startCamera = async () => {
@@ -330,6 +360,28 @@ onBeforeUnmount(() => {
         object-fit: cover;
         object-position: center;
         z-index: 1;
+    }
+
+    .camera-container .controls {
+        display: flex;
+        width: 100%;
+        justify-content: space-evenly;
+        align-items: center;
+        gap: 1rem;
+        z-index: 4;
+    }
+
+    .controls .flash {
+        cursor: pointer;
+        transform: scale(3);
+    }
+
+    .controls .flash.active {
+        filter: brightness(1.5);
+    }
+
+    .controls .flash.active path {
+        fill: #000;
     }
 
     .shutter {
