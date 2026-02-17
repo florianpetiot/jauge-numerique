@@ -18,6 +18,13 @@
               @touchend.passive="onTouchEnd"
               @touchcancel.passive="onTouchEnd"
             />
+            <Transition name="helper-fade">
+              <div v-if="isZooming" id="helper" :class="{ 'zoom-anim': isZooming}">
+                <p>Recadrez l'image ici</p>
+                <div id="touch1"></div>
+                <div id="touch2"></div>
+              </div>
+            </Transition>
         </div>
 
         <div class="explanations">
@@ -68,6 +75,20 @@ const showErrorToast = (message: string) => {
 
 const photoDisplayRef = ref<HTMLElement | null>(null);
 const zoomImgRef = ref<HTMLImageElement | null>(null);
+
+const isZooming = ref(false);
+
+function shouldShowHelper() {
+  const raw = localStorage.getItem('UserHelper');
+  if (!raw) return true;
+  const last = parseInt(raw, 10);
+  if (isNaN(last)) return true;
+  const now = Date.now();
+  return (now - last) > 24 * 60 * 60 * 1000;
+}
+
+isZooming.value = shouldShowHelper();
+
 
 const {
   matrixState,
@@ -175,39 +196,6 @@ async function nextWithZoom() {
     console.warn('Impossible de sauvegarder transform', err);
   }
 
-  // try {
-  //   const res = await fetch(`${import.meta.env.VITE_API_URL}/api/diameter`, {
-  //     method: 'POST',
-  //     headers: { 'Content-Type': 'application/json' },
-  //     body: JSON.stringify({
-  //       // analysis: analysis.value,
-  //       transform: {
-  //         x,
-  //         y,
-  //         scale,
-  //         angle,
-  //         matrix: matrixState.value
-  //       }
-  //     })
-  //   });
-
-
-  //   const json = await res.json().catch(() => ({}));
-  //   if (!res.ok || json.error) {
-  //     const serverMessage = json.error || 'Erreur inconnue du serveur';
-  //     console.warn('Erreur serveur /api/diameter', serverMessage);
-  //     showErrorToast(`Erreur serveur: ${serverMessage}`);
-  //     return;
-  //   }
-
-
-  // } catch (e) {
-  //   console.warn('Erreur lors de l\'appel à /api/diameter', e);
-  //   showErrorToast('Erreur de communication avec le serveur. Veuillez réessayer.');
-  //   return;
-  // }
-
-
   // Calculate thread focus point: bottom center of the visible target rectangle
   // an store target height in sessionStorage
   try {
@@ -308,13 +296,22 @@ function resetFromTouches(e: TouchEvent) {
   }
 }
 
+function hideHelperAndSave() {
+  if (isZooming.value) {
+    isZooming.value = false;
+    localStorage.setItem('UserHelper', Date.now().toString());
+  }
+}
+
 function onTouchStart(e: TouchEvent) {
   if (isAutoAnimating.value) return;
+  hideHelperAndSave();
   resetFromTouches(e);
 }
 
 function onTouchMove(e: TouchEvent) {
   if (isAutoAnimating.value) return;
+  hideHelperAndSave();
   const touches = e.touches;
   if (touches.length === 1 && panActive) {
     const t = touches.item(0);
@@ -449,7 +446,7 @@ const goToCamera = () => router.push({ name: 'Camera' });
         width: 100%;
         height: 12%;
         pointer-events: none;
-        z-index: 3;
+        z-index: 5;
     }
 
     .photo-display .cache-up {
@@ -473,7 +470,91 @@ const goToCamera = () => router.push({ name: 'Camera' });
         border-bottom: 3px solid #00c2d0;
         transform: translate(-50%, -50%);
         pointer-events: none;
-        z-index: 4;
+        z-index: 3;
+    }
+
+    #helper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      z-index: 4;
+    }
+
+    #helper p {
+      width: 100%;
+      text-align: center;
+      font-size: large;
+    }
+
+    #touch1, #touch2 {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(255, 255, 255, 0.5);
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .zoom-anim #touch1 {
+      animation: touch1-zoom 2.5s cubic-bezier(.6,0,.13,1) infinite;
+    }
+    .zoom-anim #touch2 {
+      animation: touch2-zoom 2.5s cubic-bezier(.6,0,.13,1) infinite;
+    }
+
+    @keyframes touch1-zoom {
+      0% {
+        transform: translate(-50%, -50%);
+        opacity: 0;
+      }
+      50% {
+        opacity: 1;
+      }
+      85% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-140px, -70px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes touch2-zoom {
+      0% {
+        transform: translate(-50%, -50%);
+        opacity: 0;
+      }
+      50% {
+        opacity: 1;
+      }
+      85% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(120px, 50px);
+        opacity: 0;
+      }
+    }
+
+    .helper-fade-enter-active, .helper-fade-leave-active {
+      transition: opacity 0.5s cubic-bezier(.4,2,.6,1);
+    }
+    .helper-fade-enter-from, .helper-fade-leave-to {
+      opacity: 0;
+    }
+    .helper-fade-enter-to, .helper-fade-leave-from {
+      opacity: 1;
     }
 
     .explanations {
