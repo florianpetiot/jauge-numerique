@@ -127,10 +127,12 @@ onMounted(async () => {
   // Récupérer et afficher les résultats d'analyse depuis sessionStorage
   try {
     const results = sessionStorage.getItem('analysisResult');
-    if (results && analysisResult.value) {
+    const finalResult = sessionStorage.getItem('threadingResult');
+    if (results && finalResult && analysisResult.value) {
       try {
         const parsed = JSON.parse(results);
-        analysisResult.value.innerHTML = '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>';
+        const finalParsed = JSON.parse(finalResult);
+        analysisResult.value.innerHTML = '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>' + '<pre>' + JSON.stringify(finalParsed, null, 2) + '</pre>';
       } catch (parseErr) {
         analysisResult.value.innerHTML = results;
       }

@@ -1,7 +1,7 @@
 import json
 from utils.metric_conversion import TPI_to_pas, pas_to_TPI
 
-def find_match(mesured_diam_mm, tolerance_diam, mesured_pas, tolerance_pas, dimension_filepath):
+def find_match(mesured_diam_mm: float, tolerance_diam: float, mesured_pas: float, tolerance_pas: float, dimension_filepath: str) -> list[str]:
     with open(dimension_filepath, 'r') as file:
         dimensions = json.load(file)
 
