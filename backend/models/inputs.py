@@ -19,5 +19,5 @@ class DiameterInput(BaseModel):
     transform: TransformInput
 
 class ThreadingInput(BaseModel):
-    number_of_threads: int
-    width_of_thread: float
+    diameter_mm: float
+    step_mm: float

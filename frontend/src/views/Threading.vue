@@ -234,31 +234,6 @@ async function nextPage() {
     width_of_thread_px = linesWidth.value / 100 * containerW;
   }
 
-  // try {
-  //   const res = await fetch(`${import.meta.env.VITE_API_URL}/api/threading`, {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //     },
-  //     body: JSON.stringify({
-  //       number_of_threads: numberOfLines.value,
-  //       width_of_thread: width_of_thread_px,
-  //     }),
-  //   });
-
-  //   const json = await res.json().catch(() => ({}));
-  //   if (!res.ok || json.error) {
-  //     const serverMessage = json.error || 'Erreur inconnue du serveur.';
-  //     showErrorToast(`Erreur serveur: ${serverMessage}`);
-  //     return;
-  //   }
-  // }
-  // catch (e) {
-  //   console.warn('Erreur lors de l\'appel à /api/threading', e);
-  //   showErrorToast('Erreur de communication avec le serveur. Veuillez réessayer.');
-  //   return;
-  // }
-
   // get width of .lines in pixels
   let linesWidthPx = 0;
   if (host) { 
@@ -285,6 +260,33 @@ async function nextPage() {
 
   } catch (err) { 
     console.warn('Impossible de sauvegarder analysisResult avec threading data', err);
+  }
+
+  try {
+    const res = await fetch('/api/findThreading', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        diameter_mm: analysis.value?.mm_per_pixel * analysis.value?.threading_height_px,
+        step_mm: analysis.value?.mm_per_pixel * linesWidthPx / numberOfLines.value,
+      }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.success) {
+        console.error('Erreur serveur:', json);
+        showErrorToast('Erreur lors de l\'analyse de l\'image sur le serveur.');
+        return;
+    }
+    try {
+      sessionStorage.setItem('threadingResult', JSON.stringify(json));
+    } catch (err) {
+      console.warn('Impossible de sauvegarder threadingResult', err);
+    }
+  }
+  catch (err) {
+    console.warn('Erreur lors de la requête findThreading', err);
+    showErrorToast('Une erreur est survenue lors de l\'analyse du filetage. Veuillez réessayer.');
+    return;
   }
 
   // Sauvegarder la matrice finale (après auto-zoom) pour l'animation dans Results

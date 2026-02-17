@@ -6,7 +6,7 @@ def register_blueprints(app: Flask) -> None:
     from .analyze import analyze_bp
     from .health import health_bp
     from .diameter import diameter_bp
-    from .threading import threading_bp
+    from .findThreading import threading_bp
 
     app.register_blueprint(analyze_bp)
     app.register_blueprint(health_bp)
