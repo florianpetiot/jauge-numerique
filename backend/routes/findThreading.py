@@ -3,7 +3,7 @@ import logging
 
 from models.validation import validate_body
 from models.inputs import ThreadingInput
-from services.find_match import find_match
+from services.read_supabase import find_match_supabase
 
 threading_bp = Blueprint("findThreading", __name__)
 logger = logging.getLogger(__name__)
@@ -27,13 +27,11 @@ def calculate_threading(body: ThreadingInput) -> Response:
     number_of_threads = body.diameter_mm
     step_mm = body.step_mm
 
-    result = find_match(
+    result = find_match_supabase(
         mesured_diam_mm=number_of_threads,
         tolerance_diam=0.1,
         mesured_pas=step_mm,
         tolerance_pas=0.1,
-        dimension_filepath="data/Dimensions.json"
     )
-
     
     return jsonify({"success": True, "matches": result})
