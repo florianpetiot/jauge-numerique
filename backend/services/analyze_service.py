@@ -1,4 +1,5 @@
 from __future__ import annotations
+import cv2
 
 def crop_coin_region(
     image: cv2.typing.MatLike, x_center: float, y_center: float, diameter_px: float, padding: float = 0.25
