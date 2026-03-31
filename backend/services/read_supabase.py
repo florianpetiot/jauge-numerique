@@ -2,8 +2,11 @@ from supabase import create_client, Client
 import os
 from dotenv import load_dotenv
 from typing import Any
+import logging
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -29,12 +32,17 @@ def find_match_supabase(mesured_diam_mm: float, tolerance_diam: float, mesured_p
     pas_min_imperial = 25.4 / (mesured_pas + tolerance_pas)
     pas_max_imperial = 25.4 / (mesured_pas - tolerance_pas)
 
+    logger.info(
+        "Recherche dans Supabase: diam_mm entre %.2f et %.2f, pas entre %.2f et %.2f (métrique) ou entre %.2f et %.2f (impérial)",
+        diam_min, diam_max, pas_min_metric, pas_max_metric, pas_min_imperial, pas_max_imperial
+    )
+
     response = supabase.table("normes") \
         .select("*") \
         .gte("diam_mm", diam_min) \
         .lte("diam_mm", diam_max) \
         .or_(
-            f"and(unite.eq.M,pas.gte.{pas_min_metric},pas.lte.{pas_max_metric}),"
+            f"and(unite.eq.m,pas.gte.{pas_min_metric},pas.lte.{pas_max_metric}),"
             f"and(unite.eq.I,pas.gte.{pas_min_imperial},pas.lte.{pas_max_imperial})"
         ) \
         .execute()

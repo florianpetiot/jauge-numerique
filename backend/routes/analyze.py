@@ -30,10 +30,17 @@ def analyze(body: CameraInput) -> Response:
     logger.info("Zone recadrée pour la pièce (shape=%s)", cropped.shape)
 
     calib = Calibrator(REAL_DIAMETER_MM)
-    mm_per_pixel = calib.calibrate(cropped)
+    mm_per_pixel, detected_diam_px = calib.calibrate(cropped)
     if not mm_per_pixel:
         logger.warning("[Analyse] Échec de la calibration : aucune pièce détectée")
         return jsonify({"success": False, "error": "Calibration failed: no piece detected"})
 
-    logger.info(f"[Analyse] Résultat de la calibration: mm_per_pixel={mm_per_pixel:.5f}")
-    return jsonify({"success": True, "mm_per_pixel": float(mm_per_pixel)})
+    logger.info(
+        "[Analyse] Calibration: detected_diam_px=%.1f  overlay_diam_px=%.1f  mm_per_pixel=%.5f",
+        detected_diam_px, body.diameter_piece, mm_per_pixel,
+    )
+    return jsonify({
+        "success": True,
+        "mm_per_pixel": float(mm_per_pixel),
+        "detected_diameter_px": detected_diam_px,
+    })

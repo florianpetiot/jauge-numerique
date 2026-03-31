@@ -216,8 +216,22 @@ async function nextWithZoom() {
         console.warn('Impossible d\'inverser la matrice pour calculer threadFocus', inner);
       }
       
-      const targetHeight = rect.height * 0.3 ; // 30% de la hauteur du container
-      const realHeightPx = targetHeight / scale; // convertir en coordonnées image
+      const hostRect = host.getBoundingClientRect();
+      const targetEl = host.querySelector('.target');
+      
+      // Précision sous-pixel : on récupère la hauteur exacte rendue par le navigateur
+      let targetHeight = hostRect.height * 0.3; // 30% de la hauteur du container
+      if (targetEl) {
+        // getBoundingClientRect().height inclut les bordures haut et bas (6px au total)
+        // L'espace intérieur visé par l'utilisateur est donc la hauteur totale - 6px
+        targetHeight = targetEl.getBoundingClientRect().height - 6;
+      }
+
+      const img = zoomImgRef.value;
+      // Facteur de conversion : l'image CSS (width:100%) peut différer de la résolution
+      // réelle du canvas capturé (naturalWidth). La précision sous-pixel (hostRect.width) est essentielle.
+      const cssToCanvas = img ? (img.naturalWidth / hostRect.width) : 1;
+      const realHeightPx = (targetHeight / scale) * cssToCanvas; // en pixels canvas
       try {
         sessionStorage.setItem('analysisResult',
         JSON.stringify({ 

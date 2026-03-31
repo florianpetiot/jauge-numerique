@@ -237,15 +237,22 @@ async function nextPage() {
   // get width of .lines in pixels
   let linesWidthPx = 0;
   if (host) { 
-    const containerW = host.clientWidth;
+    const hostRect = host.getBoundingClientRect();
+    const containerW = hostRect.width; // Précision sous-pixel
     linesWidthPx = (linesWidth.value / 100) * containerW;
-    linesWidthPx = linesWidthPx / decomposeMatrix(getMatrix()).scale; // prendre en compte le zoom actuel linesWidthPx = realLinesWidthPx;
+    const img = zoomImgRef.value;
+    const cssToCanvas = img ? (img.naturalWidth / hostRect.width) : 1;
+    linesWidthPx = (linesWidthPx / decomposeMatrix(getMatrix()).scale) * cssToCanvas; // en pixels canvas
   }
   
   try {
     const analysisValue = analysis.value;
     const diameter_mm = analysisValue?.mm_per_pixel * analysisValue?.threading_height_px
-    const threading_lenght_mm = analysisValue?.mm_per_pixel * linesWidthPx;
+
+    // 9 repères avec space-between = 8 intervalles (pas) entre eux
+    const spanMm = analysisValue?.mm_per_pixel * linesWidthPx;       // distance premier→dernier repère
+    const pitch_mm = spanMm / (numberOfLines.value - 1);             // pas = span / (N-1)
+    const threading_lenght_mm = pitch_mm * numberOfLines.value;       // longueur totale = pas × N
 
     sessionStorage.setItem('analysisResult',
     JSON.stringify({
@@ -253,10 +260,11 @@ async function nextPage() {
       'threading_width_px': linesWidthPx, 
       'threading_number_of_threads': numberOfLines.value,
       'threading_height_mm': diameter_mm, 
-      'threading_lenght_mm': threading_lenght_mm
+      'threading_lenght_mm': threading_lenght_mm,
+      'threading_pitch_mm': pitch_mm
     })); 
 
-    console.warn({...(analysis.value || {}), 'threading_width_px': linesWidthPx, 'threading_number_of_threads': numberOfLines.value, 'diameter_mm': diameter_mm, 'threading_lenght_mm': threading_lenght_mm});
+    console.warn({...(analysis.value || {}), 'threading_width_px': linesWidthPx, 'threading_number_of_threads': numberOfLines.value, 'diameter_mm': diameter_mm, 'threading_lenght_mm': threading_lenght_mm, 'threading_pitch_mm': pitch_mm});
 
   } catch (err) { 
     console.warn('Impossible de sauvegarder analysisResult avec threading data', err);
@@ -268,7 +276,7 @@ async function nextPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         diameter_mm: analysis.value?.mm_per_pixel * analysis.value?.threading_height_px,
-        step_mm: analysis.value?.mm_per_pixel * linesWidthPx / numberOfLines.value,
+        step_mm: analysis.value?.mm_per_pixel * linesWidthPx / (numberOfLines.value - 1),
       }),
     });
     const json = await res.json().catch(() => ({}));

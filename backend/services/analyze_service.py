@@ -27,34 +27,68 @@ class Calibrator:
         self.real_diameter = real_diameter_mm
         self.mm_per_pixel = None
 
-    def calibrate(self, image_piece: cv2.typing.MatLike) -> bool|float:
+    def calibrate(self, image_piece: cv2.typing.MatLike) -> tuple[bool, float] | tuple[float, float]:
         gray = cv2.cvtColor(image_piece, cv2.COLOR_BGR2GRAY)
-        blur = cv2.medianBlur(gray, 7)
         
         h, w = gray.shape
         min_dim = min(h, w)
-        #HoughCircles vote en faisant voter chaque pixel de contour pour tous les cercles possibles qu’il pourrait appartenir à.
-        # Les cercles qui reçoivent suffisamment de votes (≥ param2) sont validés.
+        
+        # Flou modéré pour effacer les petites rayures sans détruire les contours des petites pièces
+        blur = cv2.medianBlur(gray, 5)
+        
+        # L'utilisateur place la pièce dans le repère. La pièce peut être éloignée (petite) ou proche.
+        # Le crop garantit que la zone pertinente est au centre de l'image.
         circles = cv2.HoughCircles(
-            #dp = (résolution image originale) / (résolution de l'accumulateur)
             blur, cv2.HOUGH_GRADIENT, dp=1.2,
-            #dist minimale entre deux cercles votés 
-            minDist=min_dim // 2,
-            #param1 : détecte les contours plus il est haut plus on accepte que les bords net (canny) 
-            #param2: décide s'il y a réellement un cercle parmi ces contours (le nombre minimum de votes nécessaires.)
-            param1=80, param2=20,
-            minRadius=int(min_dim * 0.25),
-            maxRadius=int(min_dim * 0.45)
+            minDist=min_dim // 4,  
+            param1=100,            # Sensibilité Canny plus stricte pour les bords réels (métal)
+            param2=35,             # Plus exigeant sur la circularité pour éviter les faux positifs
+            minRadius=int(min_dim * 0.10), # La pièce peut être très petite si la caméra est loin (10% du crop)
+            maxRadius=int(min_dim * 0.60)  # La pièce peut déborder légèrement du repère d'origine
         )
+        
+        # Fallback : si la pièce est peu contrastée, on assouplit la détection
+        if circles is None:
+            circles = cv2.HoughCircles(
+                blur, cv2.HOUGH_GRADIENT, dp=1.2,
+                minDist=min_dim // 4,
+                param1=80,
+                param2=20, # Redevient très tolérant sur la forme
+                minRadius=int(min_dim * 0.10),
+                maxRadius=int(min_dim * 0.60)
+            )
 
         if circles is not None:
-            # On prend le premier cercle trouvé
-            r = circles[0][0][2]
-            # Diamètre en pixels = 2 * rayon
-            diameter_px = 2 * r
-            self.mm_per_pixel = self.real_diameter / diameter_px
-            print(f"[Calibration] Diamètre px={diameter_px:.1f} -> Ratio={self.mm_per_pixel:.5f} mm/px")
-            return self.mm_per_pixel
+             cx_expected = w / 2.0
+             cy_expected = h / 2.0
+             
+             valid_circles = []
+             # On filtre d'abord pour s'assurer que le cercle est à peu près au centre du crop
+             # (puisque l'utilisateur a ciblé la pièce avec le repère central)
+             for c in circles[0]:
+                 x, y, r = c
+                 dist = ((x - cx_expected) ** 2 + (y - cy_expected) ** 2) ** 0.5
+                 # Tolérance : le centre du cercle ne doit pas être décalé de plus de 30% de l'image
+                 if dist < min_dim * 0.30:
+                     valid_circles.append(c)
+             
+             if not valid_circles:
+                 # S'ils sont tous excentrés, on prend quand même le cercle le plus "net" trouvé par OpenCV
+                 valid_circles = [circles[0][0]]
+
+             # On trie les cercles valides par leur rayon (du plus grand au plus petit).
+             # Pourquoi ? Souvent, la gravure de la face forme un cercle intérieur très "net" 
+             # et OpenCV le préfère au vrai bord physique de la pièce.
+             # Prendre le plus grand des bons cercles concentriques permet de cibler le bord extérieur.
+             valid_circles.sort(key=lambda c: c[2], reverse=True)
+             
+             r = valid_circles[0][2]
+             
+             diameter_px = float(2 * r)
+             self.mm_per_pixel = self.real_diameter / diameter_px
+             print(f"[Calibration] Diamètre px={diameter_px:.1f} -> Ratio={self.mm_per_pixel:.5f} mm/px")
+             return self.mm_per_pixel, diameter_px
+
         else:
             print("[Erreur] Aucune pièce détectée pour la calibration.")
-            return False
+            return False, 0.0

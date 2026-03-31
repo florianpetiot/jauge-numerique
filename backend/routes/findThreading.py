@@ -24,14 +24,14 @@ def calculate_threading(body: ThreadingInput) -> Response:
     # Afficher en log le JSON reçu
     logger.info("Données reçues (json): %s", body)
 
-    number_of_threads = body.diameter_mm
+    diameter_mm = body.diameter_mm
     step_mm = body.step_mm
 
     result = find_match_supabase(
-        mesured_diam_mm=number_of_threads,
-        tolerance_diam=0.1,
+        mesured_diam_mm=diameter_mm,
+        tolerance_diam=0.3,
         mesured_pas=step_mm,
-        tolerance_pas=0.1,
+        tolerance_pas=0.3,
     )
     
     return jsonify({"success": True, "matches": result})

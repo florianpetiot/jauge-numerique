@@ -130,9 +130,11 @@ const captureAndNext = async () => {
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
 
+    // Capturer à la résolution device pour plus de précision (HoughCircles)
+    const dpr = window.devicePixelRatio || 1;
     const canvas = document.createElement('canvas');
-    canvas.width = wrapperWidth;
-    canvas.height = wrapperHeight;
+    canvas.width = Math.round(wrapperWidth * dpr);
+    canvas.height = Math.round(wrapperHeight * dpr);
     const ctx = canvas.getContext('2d');
     if (!ctx) { isUploading.value = false; return; }
 
@@ -142,11 +144,11 @@ const captureAndNext = async () => {
     if (videoAR > wrapperAR) {
         const visibleWidth = videoHeight * wrapperAR;
         const offsetX = (videoWidth - visibleWidth) / 2;
-        ctx.drawImage(video, offsetX, 0, visibleWidth, videoHeight, 0, 0, wrapperWidth, wrapperHeight);
+        ctx.drawImage(video, offsetX, 0, visibleWidth, videoHeight, 0, 0, canvas.width, canvas.height);
     } else {
         const visibleHeight = videoWidth / wrapperAR;
         const offsetY = (videoHeight - visibleHeight) / 2;
-        ctx.drawImage(video, 0, offsetY, videoWidth, visibleHeight, 0, 0, wrapperWidth, wrapperHeight);
+        ctx.drawImage(video, 0, offsetY, videoWidth, visibleHeight, 0, 0, canvas.width, canvas.height);
     }
 
     const photo = canvas.toDataURL('image/jpeg', 0.92);
@@ -155,11 +157,12 @@ const captureAndNext = async () => {
     const threadingRect = threadingRef.value.getBoundingClientRect();
     const coinRect = coinRef.value.getBoundingClientRect();
     
-    const top_threading = Math.round(threadingRect.top - videoRect.top);
-    const bottom_threading = Math.round(threadingRect.bottom - videoRect.top);
-    const diameter_piece = Math.round(coinRect.width);
-    const x_piece = Math.round(coinRect.left - videoRect.left + diameter_piece / 2);
-    const y_piece = Math.round(coinRect.top - videoRect.top + diameter_piece / 2);
+    // Positions des overlays converties en coordonnées canvas (device pixels)
+    const top_threading = Math.round((threadingRect.top - videoRect.top) * dpr);
+    const bottom_threading = Math.round((threadingRect.bottom - videoRect.top) * dpr);
+    const diameter_piece = Math.round(coinRect.width * dpr);
+    const x_piece = Math.round((coinRect.left - videoRect.left + coinRect.width / 2) * dpr);
+    const y_piece = Math.round((coinRect.top - videoRect.top + coinRect.width / 2) * dpr);
 
 
     // Timeout helper
