@@ -8,16 +8,6 @@ class CameraInput(BaseModel):
     x_piece: float
     y_piece: float
 
-class TransformInput(BaseModel):
-    x: float
-    y: float
-    scale: float
-    angle: float
-    matrix: dict[str, float]
-
-class DiameterInput(BaseModel):
-    transform: TransformInput
-
 class ThreadingInput(BaseModel):
     diameter_mm: float
     step_mm: float
