@@ -3,7 +3,7 @@ import logging
 from flask import Blueprint, Response, jsonify, request
 
 from services.analyze_service import Calibrator, crop_coin_region
-from utils.constants import REAL_DIAMETER_MM
+from utils.constants import REAL_DIAMETER_MM, MEAN_ERROR_MM
 from utils.image_converter import convert_image_base64_to_cv2
 from models.inputs import CameraInput
 from models.validation import validate_body
@@ -29,7 +29,7 @@ def analyze(body: CameraInput) -> Response:
     cropped = crop_coin_region(image_cv2, body.x_piece, body.y_piece, body.diameter_piece)
     logger.info("Zone recadrée pour la pièce (shape=%s)", cropped.shape)
 
-    calib = Calibrator(REAL_DIAMETER_MM)
+    calib = Calibrator(REAL_DIAMETER_MM, MEAN_ERROR_MM)
     mm_per_pixel, detected_diam_px = calib.calibrate(cropped)
     if not mm_per_pixel:
         logger.warning("[Analyse] Échec de la calibration : aucune pièce détectée")

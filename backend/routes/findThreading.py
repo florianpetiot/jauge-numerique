@@ -29,7 +29,7 @@ def calculate_threading(body: ThreadingInput) -> Response:
 
     result = find_match_supabase(
         mesured_diam_mm=diameter_mm,
-        tolerance_diam=0.3,
+        tolerance_diam=0.5,
         mesured_pas=step_mm,
         tolerance_pas=0.3,
     )

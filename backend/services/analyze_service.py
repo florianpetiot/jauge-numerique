@@ -28,8 +28,9 @@ def crop_coin_region(
 
 
 class Calibrator:
-    def __init__(self, real_diameter_mm: float):
+    def __init__(self, real_diameter_mm: float, mean_error_mm: float):
         self.real_diameter = real_diameter_mm
+        self.mean_error = mean_error_mm
         self.mm_per_pixel = None
 
     def calibrate(self, image_piece: cv2.typing.MatLike) -> tuple[bool, float] | tuple[float, float]:
@@ -42,9 +43,9 @@ class Calibrator:
         blur = cv2.GaussianBlur(gray, (5, 5), 0)
         
         # -- DEBUT DEBUG AFFICHAGE --
-        cv2.imshow("1. Original", image_piece)
-        cv2.imshow("2. Blur", blur)
-        debug_img = image_piece.copy()
+        # cv2.imshow("1. Original", image_piece)
+        # cv2.imshow("2. Blur", blur)
+        # debug_img = image_piece.copy()
         # -- FIN DEBUG AFFICHAGE --
 
         # L'utilisateur place la pièce dans le repère. La pièce peut être éloignée (petite) ou proche.
@@ -80,7 +81,7 @@ class Calibrator:
              # (puisque l'utilisateur a ciblé la pièce avec le repère central)
              for i, c in enumerate(circles[0]):
                  x, y, r = c
-                 cv2.circle(debug_img, (int(x), int(y)), int(r), (0, 0, 255), 1) # Dessine tous les cercles en rouge
+                 # cv2.circle(debug_img, (int(x), int(y)), int(r), (0, 0, 255), 1) # Dessine tous les cercles en rouge
                  
                  dist = ((x - cx_expected) ** 2 + (y - cy_expected) ** 2) ** 0.5
                  logger.info(f"[Calibration] Cercle {i}: rayon={r:.1f}, dist_center={dist:.1f}")
@@ -88,7 +89,7 @@ class Calibrator:
                  # Tolérance : le centre du cercle ne doit pas être décalé de plus de 30% de l'image
                  if dist < min_dim * 0.30:
                      valid_circles.append(c)
-                     cv2.circle(debug_img, (int(x), int(y)), int(r), (0, 255, 0), 2) # Vert pour les cercles valides
+                     # cv2.circle(debug_img, (int(x), int(y)), int(r), (0, 255, 0), 2) # Vert pour les cercles valides
                  else:
                      logger.info(f"  -> Rejeté: trop excentré (dist {dist:.1f} > max {min_dim * 0.30:.1f})")
              
@@ -104,22 +105,22 @@ class Calibrator:
              r = best_c[2]
              
              # Dessiner le meilleur cercle en bleu épais
-             cv2.circle(debug_img, (int(best_c[0]), int(best_c[1])), int(best_c[2]), (255, 0, 0), 3)
+             # cv2.circle(debug_img, (int(best_c[0]), int(best_c[1])), int(best_c[2]), (255, 0, 0), 3)
              
-             cv2.imshow("3. Circles", debug_img)
-             logger.info("Appuyez sur une touche sur la fênetre d'images OpenCV pour fermer et continuer...")
-             cv2.waitKey(0)
-             cv2.destroyAllWindows()
+             # cv2.imshow("3. Circles", debug_img)
+             # logger.info("Appuyez sur une touche sur la fênetre d'images OpenCV pour fermer et continuer...")
+             # cv2.waitKey(0)
+             # cv2.destroyAllWindows()
              
              diameter_px = float(2 * r)
-             self.mm_per_pixel = self.real_diameter / diameter_px
+             self.mm_per_pixel = self.real_diameter / diameter_px - self.mean_error
              logger.info(f"[Calibration] Diamètre px={diameter_px:.1f} -> Ratio={self.mm_per_pixel:.5f} mm/px")
              return self.mm_per_pixel, diameter_px
 
         else:
             logger.info("[Erreur] Aucune pièce détectée pour la calibration.")
-            cv2.imshow("3. Circles", debug_img)
-            logger.info("Appuyez sur une touche sur la fênetre d'images OpenCV pour fermer et continuer...")
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+            # cv2.imshow("3. Circles", debug_img)
+            # logger.info("Appuyez sur une touche sur la fênetre d'images OpenCV pour fermer et continuer...")
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
             return False, 0.0

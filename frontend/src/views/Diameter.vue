@@ -219,12 +219,14 @@ async function nextWithZoom() {
       const hostRect = host.getBoundingClientRect();
       const targetEl = host.querySelector('.target');
       
-      // Précision sous-pixel : on récupère la hauteur exacte rendue par le navigateur
-      let targetHeight = hostRect.height * 0.3; // 30% de la hauteur du container
+      // Précision sous-pixel : hauteur INTÉRIEURE du rectangle patron
+      // (= zone entre les bordures haut et bas, là où l'utilisateur aligne le filetage)
+      let targetHeight = hostRect.height * 0.3;
       if (targetEl) {
-        // getBoundingClientRect().height inclut les bordures haut et bas (6px au total)
-        // L'espace intérieur visé par l'utilisateur est donc la hauteur totale - 6px
-        targetHeight = targetEl.getBoundingClientRect().height - 6;
+        const targetStyles = getComputedStyle(targetEl);
+        const borderTop = parseFloat(targetStyles.borderTopWidth) || 0;
+        const borderBottom = parseFloat(targetStyles.borderBottomWidth) || 0;
+        targetHeight = targetEl.getBoundingClientRect().height - borderTop - borderBottom;
       }
 
       const img = zoomImgRef.value;
