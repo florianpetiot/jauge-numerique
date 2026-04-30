@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue';
+import DesktopMessage from '@/components/DesktopMessage.vue';
 
 const isLandscape = ref(false);
 const isMobile = ref(false);
@@ -61,7 +62,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="showOrientationMessage" class="orientation-message">
+  <DesktopMessage v-if="!isMobile" />
+  <div v-else-if="showOrientationMessage" class="orientation-message">
     Veuillez tourner votre téléphone en mode portrait pour une meilleure expérience.
   </div>
   <router-view v-else />

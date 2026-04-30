@@ -6,6 +6,7 @@
             <div class="video-wrapper">
                 <div class="cache-up"></div>
                 <div class="cache-down"></div>
+                <div class="info-text">Fonctionne actuellement avec une pièce de 50 centimes</div>
                 <div class="overlay">
                     <div ref="threadingRef" class="threading">Placez votre<br>filetage ici</div>
                     <div ref="coinRef" class="coin">Placez une<br>pièce de<br>monnaie ici</div>
@@ -308,6 +309,20 @@ onBeforeUnmount(() => {
     .video-wrapper .cache-down {
         bottom: 0;
         background: linear-gradient(to top, #fff, #ffffff00);
+    }
+
+    .video-wrapper .info-text {
+        position: absolute;
+        bottom: 15px;
+        width: 100%;
+        text-align: center;
+        color: #fff;
+        z-index: 10;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.8);
+        padding: 0 1rem;
+        box-sizing: border-box;
     }
 
     .video-wrapper .overlay {
